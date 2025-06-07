@@ -1,0 +1,15 @@
+[project]
+name = "aichat"
+description = "gemini and openai in comfyui"
+version = "1.0.0"
+license = {file = "LICENSE"}
+
+[project.urls]
+Repository = "https://github.com/spawner1145/comfyui-aichat"
+#  Used by Comfy Registry https://registry.comfy.org
+
+[tool.comfy]
+PublisherId = "spawner"
+DisplayName = "comfyui-aichat"
+Icon = ""
+includes = []

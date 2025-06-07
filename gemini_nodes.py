@@ -25,7 +25,6 @@ logger = logging.getLogger('Gemini_ComfyUI')
 logger.setLevel(logging.INFO)
 
 class GeminiAPI:
-     """ 精简版 GeminiAPI 类，移除了 Tool Calling 功能 """
      def __init__(
         self,
         apikey: str,
@@ -145,7 +144,7 @@ class GeminiAPI:
         topk: Optional[int] = None,
         retries: int = 2
      ) -> AsyncGenerator[Union[str, Dict], None]:
-        """核心 API 调用逻辑 (无Tool)"""
+        """核心 API 调用逻辑"""
         
         body = {"contents": api_contents}
         if system_instruction:

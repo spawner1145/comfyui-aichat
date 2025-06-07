@@ -28,7 +28,6 @@ logger.setLevel(logging.INFO)
 from openai import AsyncOpenAI
 
 class OpenAIAPI:
-    """ 精简版 API 类，移除了 Tool Calling 功能 """
     def __init__(
         self,
         apikey: str,

@@ -1,0 +1,964 @@
+{
+  "id": "ed1c82b4-4b7d-47ac-8ebf-5466e80415a9",
+  "revision": 0,
+  "last_node_id": 30,
+  "last_link_id": 27,
+  "nodes": [
+    {
+      "id": 15,
+      "type": "easy string",
+      "pos": [
+        880.7830200195312,
+        -314.8269958496094
+      ],
+      "size": [
+        299.7011413574219,
+        70.56587219238281
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "title": "system",
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "71c7865d2d3c934ccb99f24171e08ae5a81148ac",
+        "Node name for S&R": "easy string"
+      },
+      "widgets_values": [
+        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "easy showAnything",
+      "pos": [
+        961.3193969726562,
+        -629.5440063476562
+      ],
+      "size": [
+        675.191162109375,
+        243.35435485839844
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "71c7865d2d3c934ccb99f24171e08ae5a81148ac",
+        "Node name for S&R": "easy showAnything"
+      },
+      "widgets_values": [
+        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>\n(masterpiece, best quality, illustration, highly detailed:1.2), hakurei reimu, touhou project, standing on hakurei shrine, serene expression, long black hair, large red ribbon in hair, red and white miko outfit, detached sleeves, white blouse, red skirt, ofuda in hand, floating ofuda around, peaceful atmosphere, sunlight filtering through trees, shrine in the background, traditional architecture, torii gate, stone lanterns, lush greenery, depth of field, dynamic angle, wind blowing gently, petals scattered, (intricate details, sharp focus, perfect composition:1.1), vibrant colors, soft lighting, dreamy look\n"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "Text Concatenate",
+      "pos": [
+        888.2088623046875,
+        -179.4582977294922
+      ],
+      "size": [
+        270,
+        142
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text_a",
+          "shape": 7,
+          "type": "STRING",
+          "link": 6
+        },
+        {
+          "name": "text_b",
+          "shape": 7,
+          "type": "STRING",
+          "link": 11
+        },
+        {
+          "name": "text_c",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "text_d",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            8,
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "was-ns",
+        "ver": "3.0.0",
+        "Node name for S&R": "Text Concatenate"
+      },
+      "widgets_values": [
+        "\\n",
+        "false"
+      ]
+    },
+    {
+      "id": 25,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1193.7864990234375,
+        -46.94553756713867
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 21,
+      "type": "VAELoader",
+      "pos": [
+        1731.83447265625,
+        -445.62591552734375
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            22
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ]
+    },
+    {
+      "id": 27,
+      "type": "VAEDecode",
+      "pos": [
+        2096.24365234375,
+        -281.1273193359375
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 21
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 26,
+      "type": "EmptyLatentImage",
+      "pos": [
+        1638.1614990234375,
+        167.24517822265625
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            20
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        1024,
+        1536,
+        1
+      ]
+    },
+    {
+      "id": 20,
+      "type": "CLIPLoader",
+      "pos": [
+        885.3524780273438,
+        14.741385459899902
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            14,
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "gemma_2_2b_fp16.safetensors",
+        "lumina2",
+        "default"
+      ]
+    },
+    {
+      "id": 28,
+      "type": "SaveImage",
+      "pos": [
+        2260.466064453125,
+        -364.4090270996094
+      ],
+      "size": [
+        704.8540649414062,
+        718.2340698242188
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 23
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 24,
+      "type": "KSampler",
+      "pos": [
+        1718.69580078125,
+        -319.96746826171875
+      ],
+      "size": [
+        270,
+        262
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 16
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 17
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 19
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        275934077830107,
+        "randomize",
+        50,
+        4.5,
+        "euler_ancestral",
+        "linear_quadratic",
+        1
+      ]
+    },
+    {
+      "id": 8,
+      "type": "GeminiImageEncoder_Zho",
+      "pos": [
+        155.3619842529297,
+        -714.5053100585938
+      ],
+      "size": [
+        270,
+        102
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "content_item",
+          "type": "GEMINI_CONTENT_ITEM",
+          "links": []
+        },
+        {
+          "name": "base64_data",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GeminiImageEncoder_Zho"
+      },
+      "widgets_values": [
+        "png",
+        85
+      ]
+    },
+    {
+      "id": 9,
+      "type": "LoadImage",
+      "pos": [
+        143.2122344970703,
+        -565.5488891601562
+      ],
+      "size": [
+        270,
+        314
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "ComfyUI_00010_.png",
+        "image"
+      ]
+    },
+    {
+      "id": 23,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [
+        1257.7591552734375,
+        234.643798828125
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "ModelSamplingAuraFlow"
+      },
+      "widgets_values": [
+        6.000000000000001
+      ]
+    },
+    {
+      "id": 30,
+      "type": "TeaCache_Lumina2",
+      "pos": [
+        781.7444458007812,
+        186.69505310058594
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            27
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "cui-lumina2-teacache",
+        "ver": "c10d373b82dcf863640b946b7d082817003854c7",
+        "Node name for S&R": "TeaCache_Lumina2"
+      },
+      "widgets_values": [
+        0.3,
+        0,
+        1,
+        "[225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]"
+      ]
+    },
+    {
+      "id": 18,
+      "type": "UNETLoader",
+      "pos": [
+        477.48358154296875,
+        120.11148071289062
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "consolidated.00-of-01.pth",
+        "default"
+      ]
+    },
+    {
+      "id": 22,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1217.777099609375,
+        -314.8269348144531
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 14
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 1,
+      "type": "GeminiChat_Zho",
+      "pos": [
+        468.77716064453125,
+        -388.5570068359375
+      ],
+      "size": [
+        400,
+        448
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "api_instance",
+          "type": "GEMINI_API_INSTANCE",
+          "link": 12
+        },
+        {
+          "name": "content_part_1",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "content_part_2",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "content_part_3",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "user_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "user_prompt"
+          },
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_text",
+          "type": "STRING",
+          "links": [
+            11
+          ]
+        },
+        {
+          "name": "history_json_out",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GeminiChat_Zho"
+      },
+      "widgets_values": [
+        "帮我描述一下这张图片",
+        true,
+        true,
+        "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言",
+        "[]",
+        100000,
+        0.7,
+        0.95,
+        0,
+        -1,
+        2
+      ]
+    },
+    {
+      "id": 10,
+      "type": "WeiLinComfyUIPromptAllInOneGreat",
+      "pos": [
+        30.546735763549805,
+        -180.43975830078125
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "正向 STRING",
+          "type": "STRING",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "weilin-comfyui-prompt-all-in-one",
+        "ver": "b67771b09fe04abaad407200e4d7875ae3b62354",
+        "Node name for S&R": "WeiLinComfyUIPromptAllInOneGreat"
+      },
+      "widgets_values": [
+        "我想要画touhou里的博丽灵梦，随便给我写点好的提示词",
+        ""
+      ]
+    },
+    {
+      "id": 6,
+      "type": "GeminiApiLoader_Zho",
+      "pos": [
+        597.3652954101562,
+        -648.6920776367188
+      ],
+      "size": [
+        270,
+        178
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "api_instance",
+          "type": "GEMINI_API_INSTANCE",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GeminiApiLoader_Zho"
+      },
+      "widgets_values": [
+        "",
+        "gemini-2.0-flash-001",
+        "https://generativelanguage.googleapis.com",
+        "",
+        "",
+        180
+      ]
+    }
+  ],
+  "links": [
+    [
+      4,
+      9,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      15,
+      0,
+      14,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      14,
+      0,
+      17,
+      0,
+      "*"
+    ],
+    [
+      9,
+      10,
+      0,
+      1,
+      4,
+      "STRING"
+    ],
+    [
+      11,
+      1,
+      0,
+      14,
+      1,
+      "STRING"
+    ],
+    [
+      12,
+      6,
+      0,
+      1,
+      0,
+      "GEMINI_API_INSTANCE"
+    ],
+    [
+      13,
+      14,
+      0,
+      22,
+      1,
+      "STRING"
+    ],
+    [
+      14,
+      20,
+      0,
+      22,
+      0,
+      "CLIP"
+    ],
+    [
+      16,
+      23,
+      0,
+      24,
+      0,
+      "MODEL"
+    ],
+    [
+      17,
+      22,
+      0,
+      24,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      18,
+      20,
+      0,
+      25,
+      0,
+      "CLIP"
+    ],
+    [
+      19,
+      25,
+      0,
+      24,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      20,
+      26,
+      0,
+      24,
+      3,
+      "LATENT"
+    ],
+    [
+      21,
+      24,
+      0,
+      27,
+      0,
+      "LATENT"
+    ],
+    [
+      22,
+      21,
+      0,
+      27,
+      1,
+      "VAE"
+    ],
+    [
+      23,
+      27,
+      0,
+      28,
+      0,
+      "IMAGE"
+    ],
+    [
+      26,
+      18,
+      0,
+      30,
+      0,
+      "MODEL"
+    ],
+    [
+      27,
+      30,
+      0,
+      23,
+      0,
+      "MODEL"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8769226950000245,
+      "offset": [
+        -48.46925101023112,
+        839.371102581598
+      ]
+    },
+    "frontendVersion": "1.21.7"
+  },
+  "version": 0.4
+}

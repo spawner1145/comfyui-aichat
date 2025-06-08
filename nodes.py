@@ -1,3 +1,4 @@
+
 import httpx
 import json
 import mimetypes
@@ -520,6 +521,7 @@ class OpenAIChatNode:
                  "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.01}),
                  "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
                  "retries": ("INT", {"default": 2, "min": 0, "max": 5, "step": 1}),
+                "should_change": ("BOOLEAN", {"default": True}),
             }
         }
 
@@ -533,7 +535,7 @@ class OpenAIChatNode:
              content_part_1: Optional[Dict] = None,
              content_part_2: Optional[Dict] = None,
              content_part_3: Optional[Dict] = None,
-             max_tokens: int = 1024, temperature: float = 0.7, top_p: float = 0.95, retries: int = 1,
+             max_tokens: int = 1024, temperature: float = 0.7, top_p: float = 0.95, retries: int = 1,should_change: bool = False,
              ):
         if not api_instance:
              raise ValueError("API 实例未连接")
@@ -604,3 +606,10 @@ class OpenAIChatNode:
              history_json_out = json.dumps([{"role": "system", "content": f"History serialization error: {e}"}], ensure_ascii=False, indent=2)
 
         return (final_text, history_json_out)
+
+    @classmethod
+    def IS_CHANGED(s, should_change=False, *args, **kwargs):
+        if should_change:
+            return float("NaN")
+        else:
+            return False

@@ -1,0 +1,1634 @@
+{
+  "id": "ed1c82b4-4b7d-47ac-8ebf-5466e80415a9",
+  "revision": 0,
+  "last_node_id": 52,
+  "last_link_id": 58,
+  "nodes": [
+    {
+      "id": 24,
+      "type": "KSampler",
+      "pos": [
+        1718.69580078125,
+        -319.96746826171875
+      ],
+      "size": [
+        257.4341735839844,
+        288.3883056640625
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 16
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 17
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 19
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        823317878302902,
+        "randomize",
+        50,
+        4.5,
+        "euler_ancestral",
+        "linear_quadratic",
+        1
+      ]
+    },
+    {
+      "id": 22,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1219.1593017578125,
+        -299.6222229003906
+      ],
+      "size": [
+        398.6177673339844,
+        184.7952880859375
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 14
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 9,
+      "type": "LoadImage",
+      "pos": [
+        -194.0552215576172,
+        -801.9125366210938
+      ],
+      "size": [
+        270,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "5C3E873C1C5397CA96DAB8A9C71CAA25.png",
+        "image"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "Text Concatenate",
+      "pos": [
+        881.7512817382812,
+        -179.2110137939453
+      ],
+      "size": [
+        270,
+        142
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text_a",
+          "shape": 7,
+          "type": "STRING",
+          "link": 6
+        },
+        {
+          "name": "text_b",
+          "shape": 7,
+          "type": "STRING",
+          "link": 36
+        },
+        {
+          "name": "text_c",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "text_d",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            8,
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "was-ns",
+        "ver": "3.0.0",
+        "Node name for S&R": "Text Concatenate"
+      },
+      "widgets_values": [
+        "\\n",
+        "false"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "easy showAnything",
+      "pos": [
+        961.3193969726562,
+        -629.5440063476562
+      ],
+      "size": [
+        675.191162109375,
+        243.35435485839844
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "71c7865d2d3c934ccb99f24171e08ae5a81148ac",
+        "Node name for S&R": "easy showAnything"
+      },
+      "widgets_values": [
+        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>\na captivating bunny girl stands gracefully in a modern, minimalist studio with soft natural lighting. Her luscious, flowing auburn hair cascades down her shoulders, framing a face with strikingly vibrant emerald green eyes that hold a playful yet confident gaze. She has fair skin with a dusting of freckles across her nose and cheeks, adding a touch of youthful charm to her appearance.\n\nShe wears a sleek, black latex bunny suit that accentuates her figure, complete with tall, perky bunny ears that match the suit's glossy sheen. A delicate, silver chain necklace adorns her neck, featuring a small, intricate charm. Her long legs are encased in sheer black stockings, leading down to high-heeled black pumps that add height and elegance. Her gloved hands rest gently on her hips, accentuating her pose.\n\nThe background is kept simple to emphasize the subject: a light gray wall with subtle texture and a single, abstract piece of art hanging slightly out of focus. The overall mood is sophisticated yet playful, with a strong emphasis on artistic detail and aesthetic appeal.\n\n(best quality, very aesthetic, year 2024, absurdres, masterpiece), (artist: fuzichoco), artist: kedama milk, artist: chen bin, (artist: atdan), artist: hito, artist: hiten, (artist: mignon), rating: general, very aesthetic, absurdres, auburn hair, emerald green eyes, freckles, black latex bunny suit, silver chain necklace, sheer black stockings, black high heels, minimalist studio, soft natural lighting\n"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "WeiLinComfyUIPromptAllInOneGreat",
+      "pos": [
+        -74.41055297851562,
+        -436.2404479980469
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "正向 STRING",
+          "type": "STRING",
+          "links": [
+            34
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "weilin-comfyui-prompt-all-in-one",
+        "ver": "b67771b09fe04abaad407200e4d7875ae3b62354",
+        "Node name for S&R": "WeiLinComfyUIPromptAllInOneGreat"
+      },
+      "widgets_values": [
+        "随便画点好看的，我要兔女郎，人物描述细节多一点,{best quality, very aesthetic, year 2024, absurdres,masterpiece},{artist:fuzichoco},artist:kedama milk,artist:chen bin, {artist:atdan},artist:hito,artist:hiten,{artist:mignon}, rating:general, best quality, very aesthetic, absurdres",
+        ""
+      ]
+    },
+    {
+      "id": 8,
+      "type": "GeminiImageEncoder_Zho",
+      "pos": [
+        167.11111450195312,
+        -775.3240356445312
+      ],
+      "size": [
+        270,
+        102
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "content_item",
+          "type": "GEMINI_CONTENT_ITEM",
+          "links": []
+        },
+        {
+          "name": "base64_data",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "aichat",
+        "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
+        "Node name for S&R": "GeminiImageEncoder_Zho",
+        "aux_id": "spawner1145/comfyui-aichat"
+      },
+      "widgets_values": [
+        "png",
+        85
+      ]
+    },
+    {
+      "id": 30,
+      "type": "TeaCache_Lumina2",
+      "pos": [
+        1045.8681640625,
+        210.3158721923828
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            27
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "cui-lumina2-teacache",
+        "ver": "c10d373b82dcf863640b946b7d082817003854c7",
+        "Node name for S&R": "TeaCache_Lumina2"
+      },
+      "widgets_values": [
+        0.6000000000000001,
+        0,
+        1,
+        "[225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]"
+      ]
+    },
+    {
+      "id": 18,
+      "type": "UNETLoader",
+      "pos": [
+        703.182373046875,
+        172.2156524658203
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "consolidated.00-of-01.pth",
+        "default"
+      ]
+    },
+    {
+      "id": 41,
+      "type": "WeiLinComfyUIPromptAllInOneGreat",
+      "pos": [
+        -76.4424057006836,
+        -176.60157775878906
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "正向 STRING",
+          "type": "STRING",
+          "links": [
+            37,
+            40
+          ]
+        }
+      ],
+      "title": "system gemini",
+      "properties": {
+        "cnr_id": "weilin-comfyui-prompt-all-in-one",
+        "ver": "b67771b09fe04abaad407200e4d7875ae3b62354",
+        "Node name for S&R": "WeiLinComfyUIPromptAllInOneGreat"
+      },
+      "widgets_values": [
+        "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言",
+        ""
+      ]
+    },
+    {
+      "id": 15,
+      "type": "easy string",
+      "pos": [
+        862.2376708984375,
+        -333.372314453125
+      ],
+      "size": [
+        299.7011413574219,
+        70.56587219238281
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "string",
+          "type": "STRING",
+          "links": [
+            6,
+            44
+          ]
+        }
+      ],
+      "title": "system",
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "71c7865d2d3c934ccb99f24171e08ae5a81148ac",
+        "Node name for S&R": "easy string"
+      },
+      "widgets_values": [
+        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "CLIPLoader",
+      "pos": [
+        885.3524780273438,
+        14.741385459899902
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            14,
+            18,
+            47
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "gemma_2_2b_fp16.safetensors",
+        "lumina2",
+        "default"
+      ]
+    },
+    {
+      "id": 23,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [
+        1471.42041015625,
+        192.77056884765625
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            16,
+            48
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "ModelSamplingAuraFlow"
+      },
+      "widgets_values": [
+        6.000000000000001
+      ]
+    },
+    {
+      "id": 26,
+      "type": "EmptyLatentImage",
+      "pos": [
+        1753.044189453125,
+        36.256961822509766
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            20,
+            49
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        1024,
+        1536,
+        1
+      ]
+    },
+    {
+      "id": 46,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1393.4051513671875,
+        622.0631713867188
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 47
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 46
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            50
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 25,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1193.7864990234375,
+        -46.94553756713867
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            19,
+            51
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "nsfw,worst quality,old,early,low quality,lowres,signature, username,logo,bad hands,mutated hands,mammal,anthro,furry,ambiguous form,feral,semi-anthro,txt,e621,mammal,anthro,furry,ambiguous_form,feral,semi-anthro"
+      ]
+    },
+    {
+      "id": 48,
+      "type": "KSampler",
+      "pos": [
+        1876.5582275390625,
+        478.5813293457031
+      ],
+      "size": [
+        270,
+        262
+      ],
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 48
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 50
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 51
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 49
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            52
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        987615832687796,
+        "randomize",
+        20,
+        8,
+        "euler",
+        "normal",
+        1
+      ]
+    },
+    {
+      "id": 21,
+      "type": "VAELoader",
+      "pos": [
+        1731.83447265625,
+        -445.62591552734375
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            22,
+            53
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ]
+    },
+    {
+      "id": 45,
+      "type": "Text Concatenate",
+      "pos": [
+        1011.5604248046875,
+        745.431396484375
+      ],
+      "size": [
+        270,
+        142
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text_a",
+          "shape": 7,
+          "type": "STRING",
+          "link": 44
+        },
+        {
+          "name": "text_b",
+          "shape": 7,
+          "type": "STRING",
+          "link": 45
+        },
+        {
+          "name": "text_c",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "text_d",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            46,
+            55
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "was-ns",
+        "ver": "3.0.0",
+        "Node name for S&R": "Text Concatenate"
+      },
+      "widgets_values": [
+        "\\n",
+        "false"
+      ]
+    },
+    {
+      "id": 51,
+      "type": "easy showAnything",
+      "pos": [
+        1324.0198974609375,
+        888.9174194335938
+      ],
+      "size": [
+        466.9823913574219,
+        206.79290771484375
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "71c7865d2d3c934ccb99f24171e08ae5a81148ac",
+        "Node name for S&R": "easy showAnything"
+      },
+      "widgets_values": [
+        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>\nYes, this image provides a good base. Let's refine the prompt to capture the nuances present in the artwork:\n\nA radiant bunny girl with flowing, fiery red-orange hair cascading in loose waves, partially tied into twin tails. Her bright, luminous emerald green eyes sparkle with a hint of mischief, framed by delicate eyelashes and subtle freckles dusting her cheeks. She has fair skin, her expression exudes confidence with a slight smile.\n\nShe is dressed in a glossy black latex bunny suit, complete with perky, shiny black bunny ears. The suit features a plunging neckline and is paired with a matching cropped jacket with long, fitted sleeves and subtle decorative seams. A dainty silver choker with a small, ornate pendant encircles her neck. Her legs are clad in dark, sheer pantyhose with a distinct garter-like band detail near the top, leading to sleek black high heels with a subtle red accent on the heel. She's wearing delicate black gloves. One hand rests casually on her thigh while the other is gently touching her stomach, highlighting her figure.\n\nThe background is a clean, minimalistic greyish-white wall with subtle gradient lighting and a blurred, abstract framed picture hanging slightly behind her. The lighting accentuates the glossiness of the latex and the softness of her skin, creating a visually appealing contrast. The overall mood is stylish, elegant, and playful.\n\n(best quality, very aesthetic, year 2024, absurdres, masterpiece), (artist: fuzichoco), artist: kedama milk, artist: chen bin, (artist: atdan), artist: hito, artist: hiten, (artist: mignon), rating: general, very aesthetic, absurdres, red-orange hair, emerald green eyes, freckles, black latex bunny suit, cropped jacket, silver choker, sheer pantyhose, garter belt, black high heels, minimalistic background, gradient lighting, black gloves, twin tails\n"
+      ]
+    },
+    {
+      "id": 27,
+      "type": "VAEDecode",
+      "pos": [
+        2096.24365234375,
+        -281.1273193359375
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 21
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            23,
+            57
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 44,
+      "type": "GeminiImageEncoder_Zho",
+      "pos": [
+        972.4549560546875,
+        462.4835510253906
+      ],
+      "size": [
+        270,
+        102
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 58
+        }
+      ],
+      "outputs": [
+        {
+          "name": "content_item",
+          "type": "GEMINI_CONTENT_ITEM",
+          "links": [
+            43
+          ]
+        },
+        {
+          "name": "base64_data",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "aichat",
+        "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
+        "Node name for S&R": "GeminiImageEncoder_Zho"
+      },
+      "widgets_values": [
+        "png",
+        85
+      ]
+    },
+    {
+      "id": 43,
+      "type": "GeminiChat_Zho",
+      "pos": [
+        465.9605407714844,
+        418.5120849609375
+      ],
+      "size": [
+        400,
+        472
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "api_instance",
+          "type": "GEMINI_API_INSTANCE",
+          "link": 56
+        },
+        {
+          "name": "content_part_1",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": 43
+        },
+        {
+          "name": "content_part_2",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "content_part_3",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "system_prompt",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": 40
+        },
+        {
+          "name": "history_json_in",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "history_json_in"
+          },
+          "link": 41
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_text",
+          "type": "STRING",
+          "links": [
+            45
+          ]
+        },
+        {
+          "name": "history_json_out",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "aichat",
+        "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
+        "Node name for S&R": "GeminiChat_Zho"
+      },
+      "widgets_values": [
+        "这副图你觉得符合预期吗，是否可以继续润色",
+        true,
+        true,
+        "",
+        "[]",
+        100000,
+        2,
+        0.95,
+        0,
+        -1,
+        2,
+        true
+      ]
+    },
+    {
+      "id": 49,
+      "type": "VAEDecode",
+      "pos": [
+        2217.94580078125,
+        478.9315185546875
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 52
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 53
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            54
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 37,
+      "type": "GeminiChat_Zho",
+      "pos": [
+        379.5642395019531,
+        -402.5009765625
+      ],
+      "size": [
+        440.2203369140625,
+        502.3030090332031
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "api_instance",
+          "type": "GEMINI_API_INSTANCE",
+          "link": 35
+        },
+        {
+          "name": "content_part_1",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "content_part_2",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "content_part_3",
+          "shape": 7,
+          "type": "GEMINI_CONTENT_ITEM",
+          "link": null
+        },
+        {
+          "name": "user_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "user_prompt"
+          },
+          "link": 34
+        },
+        {
+          "name": "system_prompt",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "system_prompt"
+          },
+          "link": 37
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_text",
+          "type": "STRING",
+          "links": [
+            36
+          ]
+        },
+        {
+          "name": "history_json_out",
+          "type": "STRING",
+          "links": [
+            41
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "aichat",
+        "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
+        "Node name for S&R": "GeminiChat_Zho"
+      },
+      "widgets_values": [
+        "你好",
+        true,
+        true,
+        "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言",
+        "[]",
+        100000,
+        2,
+        0.95,
+        0,
+        -1,
+        2,
+        true
+      ]
+    },
+    {
+      "id": 52,
+      "type": "easy sleep",
+      "pos": [
+        1457.36474609375,
+        404.4205017089844
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "any",
+          "type": "*",
+          "link": 57
+        }
+      ],
+      "outputs": [
+        {
+          "name": "out",
+          "type": "*",
+          "links": [
+            58
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-easy-use",
+        "ver": "71c7865d2d3c934ccb99f24171e08ae5a81148ac",
+        "Node name for S&R": "easy sleep"
+      },
+      "widgets_values": [
+        5
+      ]
+    },
+    {
+      "id": 28,
+      "type": "SaveImage",
+      "pos": [
+        2292.2578125,
+        -418.31658935546875
+      ],
+      "size": [
+        704.8540649414062,
+        718.2340698242188
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 23
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 50,
+      "type": "SaveImage",
+      "pos": [
+        2440.033447265625,
+        494.4058837890625
+      ],
+      "size": [
+        720.1199951171875,
+        725.7666625976562
+      ],
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 54
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.40",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "GeminiApiLoader_Zho",
+      "pos": [
+        597.3652954101562,
+        -648.6920776367188
+      ],
+      "size": [
+        270.8066101074219,
+        194.13333129882812
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "api_instance",
+          "type": "GEMINI_API_INSTANCE",
+          "links": [
+            35,
+            56
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "aichat",
+        "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
+        "Node name for S&R": "GeminiApiLoader_Zho",
+        "aux_id": "spawner1145/comfyui-aichat"
+      },
+      "widgets_values": [
+        "",
+        "gemini-2.0-flash-001",
+        "https://generativelanguage.googleapis.com",
+        "",
+        "",
+        180
+      ]
+    }
+  ],
+  "links": [
+    [
+      4,
+      9,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      15,
+      0,
+      14,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      14,
+      0,
+      17,
+      0,
+      "*"
+    ],
+    [
+      13,
+      14,
+      0,
+      22,
+      1,
+      "STRING"
+    ],
+    [
+      14,
+      20,
+      0,
+      22,
+      0,
+      "CLIP"
+    ],
+    [
+      16,
+      23,
+      0,
+      24,
+      0,
+      "MODEL"
+    ],
+    [
+      17,
+      22,
+      0,
+      24,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      18,
+      20,
+      0,
+      25,
+      0,
+      "CLIP"
+    ],
+    [
+      19,
+      25,
+      0,
+      24,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      20,
+      26,
+      0,
+      24,
+      3,
+      "LATENT"
+    ],
+    [
+      21,
+      24,
+      0,
+      27,
+      0,
+      "LATENT"
+    ],
+    [
+      22,
+      21,
+      0,
+      27,
+      1,
+      "VAE"
+    ],
+    [
+      23,
+      27,
+      0,
+      28,
+      0,
+      "IMAGE"
+    ],
+    [
+      26,
+      18,
+      0,
+      30,
+      0,
+      "MODEL"
+    ],
+    [
+      27,
+      30,
+      0,
+      23,
+      0,
+      "MODEL"
+    ],
+    [
+      34,
+      10,
+      0,
+      37,
+      4,
+      "STRING"
+    ],
+    [
+      35,
+      6,
+      0,
+      37,
+      0,
+      "GEMINI_API_INSTANCE"
+    ],
+    [
+      36,
+      37,
+      0,
+      14,
+      1,
+      "STRING"
+    ],
+    [
+      37,
+      41,
+      0,
+      37,
+      5,
+      "STRING"
+    ],
+    [
+      40,
+      41,
+      0,
+      43,
+      4,
+      "STRING"
+    ],
+    [
+      41,
+      37,
+      1,
+      43,
+      5,
+      "STRING"
+    ],
+    [
+      43,
+      44,
+      0,
+      43,
+      1,
+      "GEMINI_CONTENT_ITEM"
+    ],
+    [
+      44,
+      15,
+      0,
+      45,
+      0,
+      "STRING"
+    ],
+    [
+      45,
+      43,
+      0,
+      45,
+      1,
+      "STRING"
+    ],
+    [
+      46,
+      45,
+      0,
+      46,
+      1,
+      "STRING"
+    ],
+    [
+      47,
+      20,
+      0,
+      46,
+      0,
+      "CLIP"
+    ],
+    [
+      48,
+      23,
+      0,
+      48,
+      0,
+      "MODEL"
+    ],
+    [
+      49,
+      26,
+      0,
+      48,
+      3,
+      "LATENT"
+    ],
+    [
+      50,
+      46,
+      0,
+      48,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      51,
+      25,
+      0,
+      48,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      52,
+      48,
+      0,
+      49,
+      0,
+      "LATENT"
+    ],
+    [
+      53,
+      21,
+      0,
+      49,
+      1,
+      "VAE"
+    ],
+    [
+      54,
+      49,
+      0,
+      50,
+      0,
+      "IMAGE"
+    ],
+    [
+      55,
+      45,
+      0,
+      51,
+      0,
+      "*"
+    ],
+    [
+      56,
+      6,
+      0,
+      43,
+      0,
+      "GEMINI_API_INSTANCE"
+    ],
+    [
+      57,
+      27,
+      0,
+      52,
+      0,
+      "*"
+    ],
+    [
+      58,
+      52,
+      0,
+      44,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.3310000000000004,
+      "offset": [
+        -335.03528500489983,
+        802.9780270475109
+      ]
+    },
+    "frontendVersion": "1.21.7"
+  },
+  "version": 0.4
+}

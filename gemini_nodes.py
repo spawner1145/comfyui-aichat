@@ -478,6 +478,7 @@ class GeminiChatNode:
                  "top_k": ("INT", {"default": 0, "min": 0, "max": 100, "step": 1, "description": "0 or none to disable"}),
                  "thinking_budget": ("INT", {"default": -1, "min": -1, "max": 24576, "step": 1, "description":"-1: disable, 0: no thinking, >0: budget (1.5 models only)"}),
                  "retries": ("INT", {"default": 2, "min": 0, "max": 5, "step": 1}),
+                "should_change": ("BOOLEAN", {"default": True}),
             }
         }
     RETURN_TYPES = ("STRING", HISTORY_TYPE,)
@@ -489,7 +490,7 @@ class GeminiChatNode:
              system_prompt: str = "", history_json_in: str = "[]", 
              content_part_1: Optional[Dict] = None, content_part_2: Optional[Dict] = None, content_part_3: Optional[Dict] = None,
              max_tokens: int = 2048, temperature: float = 0.7, top_p: float = 0.95, top_k: int = 0, 
-             thinking_budget: int = -1, retries: int = 1,
+             thinking_budget: int = -1, retries: int = 1,should_change: bool = False,
              ):
         if not api_instance: raise ValueError("API 实例未连接")
         try:
@@ -559,3 +560,10 @@ class GeminiChatNode:
              logger.error(f"序列化历史记录失败: {e}")
              history_json_out = "[]"
         return (final_text, history_json_out)
+
+    @classmethod
+    def IS_CHANGED(s, should_change=False, *args, **kwargs):
+        if should_change:
+            return float("NaN")
+        else:
+            return False

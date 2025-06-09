@@ -10,7 +10,7 @@ Repository = "https://github.com/spawner1145/comfyui-aichat"
 #  Used by Comfy Registry https://registry.comfy.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "spawner"
 DisplayName = "comfyui-aichat"
 Icon = ""
 includes = []

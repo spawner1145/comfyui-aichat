@@ -468,7 +468,7 @@ class GeminiChatNode:
             },
             "optional": {
                  "system_prompt": ("STRING", {"default": "", "multiline": True}),
-                 "history_json_in": (HISTORY_TYPE, {"default": "[]", "multiline": True, "dynamicPort": True}),
+                 "history_json_in": (HISTORY_TYPE, {"default": "[]", "multiline": True, "dynamicPort": True, "tooltip": "可以把history_json_out连接到这里来实现多轮对话"}),
                  "content_part_1": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
                  "content_part_2": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
                  "content_part_3": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),

@@ -12,6 +12,8 @@ import logging
 import inspect
 import io
 
+default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
+
 try:
     import torch
     import numpy as np
@@ -512,7 +514,7 @@ class OpenAIChatNode:
                  "filter_reasoning": ("BOOLEAN", {"default": True, "label_on": "Filter REASONING:", "label_off": "Keep REASONING:"}),
             },
             "optional": {
-                 "system_prompt": ("STRING", {"default": "", "multiline": True}),
+                 "system_prompt": ("STRING", {"default": default_system, "multiline": True}),
                  "history_json_in": (HISTORY_TYPE, {"default": "[]", "multiline": True, "dynamicPort": True, "tooltip": "可以把history_json_out连接到这里来实现多轮对话"}),
                  "content_part_1": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
                  "content_part_2": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),

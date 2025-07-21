@@ -380,7 +380,7 @@
     },
     {
       "id": 40,
-      "type": "OpenAIImageEncoder_Zho",
+      "type": "OpenAIImageEncoder",
       "pos": [
         110.98445892333984,
         -775.2615356445312
@@ -416,7 +416,7 @@
       "properties": {
         "cnr_id": "aichat",
         "ver": "993aeaf4536285782e93fdb54cf74af0444bf4c5",
-        "Node name for S&R": "OpenAIImageEncoder_Zho"
+        "Node name for S&R": "OpenAIImageEncoder"
       },
       "widgets_values": [
         "auto",
@@ -635,7 +635,7 @@
     },
     {
       "id": 38,
-      "type": "OpenAIChat_Zho",
+      "type": "OpenAIChat",
       "pos": [
         399.71990966796875,
         -359.4665222167969
@@ -697,7 +697,7 @@
       "properties": {
         "cnr_id": "aichat",
         "ver": "993aeaf4536285782e93fdb54cf74af0444bf4c5",
-        "Node name for S&R": "OpenAIChat_Zho"
+        "Node name for S&R": "OpenAIChat"
       },
       "widgets_values": [
         "你好",
@@ -797,7 +797,7 @@
     },
     {
       "id": 39,
-      "type": "OpenAIApiLoader_Zho",
+      "type": "OpenAIApiLoader",
       "pos": [
         421.2009582519531,
         -596.710205078125
@@ -822,7 +822,7 @@
       "properties": {
         "cnr_id": "aichat",
         "ver": "993aeaf4536285782e93fdb54cf74af0444bf4c5",
-        "Node name for S&R": "OpenAIApiLoader_Zho"
+        "Node name for S&R": "OpenAIApiLoader"
       },
       "widgets_values": [
         "",

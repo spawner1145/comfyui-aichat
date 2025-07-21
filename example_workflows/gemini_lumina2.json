@@ -413,7 +413,7 @@
     },
     {
       "id": 8,
-      "type": "GeminiImageEncoder_Zho",
+      "type": "GeminiImageEncoder",
       "pos": [
         167.11111450195312,
         -775.3240356445312
@@ -447,7 +447,7 @@
       "properties": {
         "cnr_id": "aichat",
         "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
-        "Node name for S&R": "GeminiImageEncoder_Zho",
+        "Node name for S&R": "GeminiImageEncoder",
         "aux_id": "spawner1145/comfyui-aichat"
       },
       "widgets_values": [
@@ -693,7 +693,7 @@
     },
     {
       "id": 37,
-      "type": "GeminiChat_Zho",
+      "type": "GeminiChat",
       "pos": [
         379.5642395019531,
         -402.5009765625
@@ -755,7 +755,7 @@
       "properties": {
         "cnr_id": "aichat",
         "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
-        "Node name for S&R": "GeminiChat_Zho"
+        "Node name for S&R": "GeminiChat"
       },
       "widgets_values": [
         "你好",
@@ -774,7 +774,7 @@
     },
     {
       "id": 6,
-      "type": "GeminiApiLoader_Zho",
+      "type": "GeminiApiLoader",
       "pos": [
         597.3652954101562,
         -648.6920776367188
@@ -799,7 +799,7 @@
       "properties": {
         "cnr_id": "aichat",
         "ver": "5856d09e11bb764212ac38dcce57dd9f28258c78",
-        "Node name for S&R": "GeminiApiLoader_Zho",
+        "Node name for S&R": "GeminiApiLoader",
         "aux_id": "spawner1145/comfyui-aichat"
       },
       "widgets_values": [

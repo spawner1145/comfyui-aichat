@@ -321,7 +321,6 @@ class OpenAIApiLoaderNode:
     def __init__(self):
         self.cached_instance : Optional[OpenAIAPI] = None
         self.cached_config_hash = None
-        # 添加一个变量来存储创建实例时的事件循环ID
         self.cached_loop_id = None
 
     @classmethod
@@ -387,7 +386,6 @@ class OpenAIApiLoaderNode:
             )
             self.cached_instance = instance
             self.cached_config_hash = current_hash
-            # 存储当前事件循环的ID
             if current_loop:
                 self.cached_loop_id = id(current_loop)
             return (instance,)

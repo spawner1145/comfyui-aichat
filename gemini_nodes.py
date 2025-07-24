@@ -1,28 +1,27 @@
 import httpx
 import json
 import mimetypes
-import asyncio
 import base64
 import os
-from typing import AsyncGenerator, Dict, List, Optional, Union, Any, Callable
-import aiofiles
+import time
+from typing import Generator, Dict, List, Optional, Union, Any
 import logging
 import io
 
 #default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
 default_system = """将danboorutag标签和图片中的特征结合(如果有)转化成自然语言，你可以将这些标签和图片(如果有)作为参考，但不要完全依赖它们，因为可能存在错误的标签。优先使用你自己的观察，并使用更合适的同义词进行描述。- 注意事项：
-    - 确保场景描述的准确性。
-    - 如果场景不符合上述规则或无法分析，请勿描述。保持描述的准确性。
-    - 使用清晰简洁的语言进行描述。避免使用复杂或难以理解的语言。
-    - 描述时尽量客观。避免使用高度主观的语言。
-    - 如果场景包含NSFW或敏感内容，请勿回避。直接描述露骨内容。
-    - 如果场景包含暴力、血腥、恐怖、恶心或其他敏感内容，请勿回避。直接描述。
-    - 使用**英文**进行描述。
-    - 想象你是一名用户试图描绘这个场景。自然地结合内容，避免结构化的描述。
-    - 只返回描述。不要包含额外内容或分析。
-    - 你的任务是描述图像中的每个方面、对象和互动，使得盲人在听到描述时能够在脑海中完美捕捉到图像。
+     - 确保场景描述的准确性。
+     - 如果场景不符合上述规则或无法分析，请勿描述。保持描述的准确性。
+     - 使用清晰简洁的语言进行描述。避免使用复杂或难以理解的语言。
+     - 描述时尽量客观。避免使用高度主观的语言。
+     - 如果场景包含NSFW或敏感内容，请勿回避。直接描述露骨内容。
+     - 如果场景包含暴力、血腥、恐怖、恶心或其他敏感内容，请勿回避。直接描述。
+     - 使用**英文**进行描述。
+     - 想象你是一名用户试图描绘这个场景。自然地结合内容，避免结构化的描述。
+     - 只返回描述。不要包含额外内容或分析。
+     - 你的任务是描述图像中的每个方面、对象和互动，使得盲人在听到描述时能够在脑海中完美捕捉到图像。
 
-    - ！！！最重要的一点，#符号后面的tag是角色名，@符号后面的是画师名，一定要提到这两个。#和@是极其重要的特殊标签，不能删除,要将二者放在开头，作为固定开头，例如：Characters: #hoshimi miyabi. Drawn by @quan \(kurisu tina\)+xxxx（自然语言部分）。
+     - ！！！最重要的一点，#符号后面的tag是角色名，@符号后面的是画师名，一定要提到这两个。#和@是极其重要的特殊标签，不能删除,要将二者放在开头，作为固定开头，例如：Characters: #hoshimi miyabi. Drawn by @quan \(kurisu tina\)+xxxx（自然语言部分）。
 
 特殊标签很重要
 记住了吗？"""
@@ -44,28 +43,27 @@ logger.setLevel(logging.INFO)
 
 class GeminiAPI:
       def __init__(
-         self,
-         apikey: str,
-         baseurl: str = "https://generativelanguage.googleapis.com",
-         model: str = "gemini-2.0-flash-001",
-         proxies: Optional[Dict[str, str]] = None,
-         timeout: float = 180.0,
-     ):
-        if not apikey:
-            raise ValueError("Gemini API Key 不能为空")
-        self.apikey = apikey
-        self.baseurl = baseurl.rstrip('/')
-        self.model = model
-        self.client = httpx.AsyncClient(
-            base_url=baseurl,
-            params={'key': apikey},
-            proxies=proxies,
-            timeout=timeout
-        )
-        logger.info(f"GeminiAPI Client Initialized: model={self.model}, base_url={self.baseurl}")
+          self,
+          apikey: str,
+          baseurl: str = "https://generativelanguage.googleapis.com",
+          model: str = "gemini-2.0-flash-001",
+          proxies: Optional[Dict[str, str]] = None,
+          timeout: float = 180.0,
+      ):
+          if not apikey:
+              raise ValueError("Gemini API Key 不能为空")
+          self.apikey = apikey
+          self.baseurl = baseurl.rstrip('/')
+          self.model = model
+          self.client = httpx.Client(
+              base_url=baseurl,
+              params={'key': apikey},
+              proxies=proxies,
+              timeout=timeout
+          )
+          logger.info(f"GeminiAPI Client Initialized: model={self.model}, base_url={self.baseurl}")
 
-      async def upload_file(self, file_path: str, display_name: Optional[str] = None) -> Dict[str, Union[str, None]]:
-          """上传单个文件到 Gemini File API，并检查 ACTIVE 状态。返回可用于 fileData 的字典"""
+      def upload_file(self, file_path: str, display_name: Optional[str] = None) -> Dict[str, Union[str, None]]:
           if not os.path.exists(file_path):
               logger.error(f"文件 {file_path} 不存在")
               raise FileNotFoundError(f"文件上传失败: 路径 {file_path} 不存在")
@@ -84,16 +82,16 @@ class GeminiAPI:
 
           file_uri = None
           try:
-              async with aiofiles.open(file_path, 'rb') as f:
+              with open(file_path, 'rb') as f:
                   headers = {"X-Goog-Upload-Protocol": "multipart"}
                   metadata = {'file': {'displayName': display_name or os.path.basename(file_path), 'mimeType': mime_type}}
                   files = {
                       'metadata': (None, json.dumps(metadata), 'application/json'),
-                      'file': (os.path.basename(file_path), await f.read(), mime_type)
-                    }
+                      'file': (os.path.basename(file_path), f.read(), mime_type)
+                  }
                   logger.info(f"开始上传文件: {file_path} ({mime_type})")
                   upload_url = f"{self.baseurl}/upload/v1beta/files"
-                  response = await self.client.post(upload_url, files=files, headers=headers)
+                  response = self.client.post(upload_url, files=files, headers=headers)
                   response.raise_for_status()
                   file_data = response.json()
                   logger.debug(f"文件上传原始响应: {file_data}")
@@ -106,7 +104,7 @@ class GeminiAPI:
               logger.error(f"文件 {file_path} 上传请求失败: {type(e).__name__} - {str(e)}")
               raise RuntimeError(f"文件 {file_path} 上传请求失败: {type(e).__name__} - {str(e)}") from e
 
-          if not await self.wait_for_file_active(file_uri, timeout=120, interval=3):
+          if not self.wait_for_file_active(file_uri, timeout=120, interval=3):
               error_msg = f"文件 {file_path} ({file_uri}) 未能在规定时间内变为 ACTIVE 状态或处理失败"
               logger.error(error_msg)
               raise TimeoutError(error_msg)
@@ -114,20 +112,19 @@ class GeminiAPI:
           logger.info(f"文件 {file_path} 上传并激活成功，URI: {file_uri}")
           return {"fileData": {"mimeType": mime_type, "fileUri": file_uri} }
 
-      async def wait_for_file_active(self, file_uri: str, timeout: int = 120, interval: int = 3) -> bool:
-          """等待文件状态变为 ACTIVE"""
+      def wait_for_file_active(self, file_uri: str, timeout: int = 120, interval: int = 3) -> bool:
           try:
-              file_name_part = file_uri.split('/v1beta/')[-1] # files/xxxxxxxx
+              file_name_part = file_uri.split('/v1beta/')[-1]
           except:
               logger.error(f"无法从 URI 解析文件名: {file_uri}")
               return False
 
-          start_time = asyncio.get_event_loop().time()
+          start_time = time.monotonic()
           logger.info(f"开始检查文件状态: {file_name_part}, 超时: {timeout}s, 间隔: {interval}s")
 
-          while (asyncio.get_event_loop().time() - start_time < timeout):
+          while (time.monotonic() - start_time < timeout):
               try:
-                  response = await self.client.get(f"/v1beta/{file_name_part}")
+                  response = self.client.get(f"/v1beta/{file_name_part}")
                   response.raise_for_status()
                   file_info = response.json()
                   state = file_info.get('state')
@@ -138,30 +135,27 @@ class GeminiAPI:
                       logger.error(f"文件 {file_name_part} 处理失败。 错误: {file_info.get('error')}")
                       return False
                   elif state == "PROCESSING":
-                        await asyncio.sleep(interval)
-                  else: # state is None or unknown
-                        await asyncio.sleep(interval)
+                      time.sleep(interval)
+                  else:
+                      time.sleep(interval)
               except Exception as e:
                   logger.error(f"检查文件 {file_name_part} 状态时出错: {type(e).__name__} - {e}, 重试中...")
-                  await asyncio.sleep(interval * 2) # Error, wait longer
+                  time.sleep(interval * 2)
           logger.warning(f"等待文件 {file_name_part} 状态变为 ACTIVE 超时 ({timeout}秒)")
           return False
 
-
-      async def _chat_api(
-         self,
-         api_contents: List[Dict],
-         stream: bool,
-         max_output_tokens: Optional[int] = None,
-         system_instruction: Optional[str] = None,
-         topp: Optional[float] = None,
-         temperature: Optional[float] = None,
-         thinking_budget: Optional[int] = None,
-         topk: Optional[int] = None,
-         retries: int = 2
-     ) -> AsyncGenerator[Union[str, Dict], None]:
-          """核心 API 调用逻辑"""
-
+      def _chat_api(
+          self,
+          api_contents: List[Dict],
+          stream: bool,
+          max_output_tokens: Optional[int] = None,
+          system_instruction: Optional[str] = None,
+          topp: Optional[float] = None,
+          temperature: Optional[float] = None,
+          thinking_budget: Optional[int] = None,
+          topk: Optional[int] = None,
+          retries: int = 2
+      ) -> Generator[Union[str, Dict], None, None]:
           body = {"contents": api_contents}
           if system_instruction:
               body["systemInstruction"] = {"parts": [{"text": system_instruction}]}
@@ -190,136 +184,132 @@ class GeminiAPI:
           for attempt in range(retries):
                 try:
                     if stream:
-                          logger.info("发起 Stream API 请求...")
-                          full_text = ""
-                          all_thoughts = []
-                          async with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
-                                response.raise_for_status()
-                                async for line in response.aiter_lines():
-                                      if not line.startswith("data: "):
-                                          continue
-                                      data_str = line[len("data: "):].strip()
-                                      if not data_str: continue
-                                      try:
-                                          chunk = json.loads(data_str)
-                                          for candidate in chunk.get("candidates", []):
-                                                for part in candidate.get("content", {}).get("parts", []):
-                                                      if "text" in part:
-                                                          full_text += part["text"]
-                                                          yield part["text"]
-                                                      if "thoughts" in part: # Handle thoughts
-                                                          all_thoughts.append(part["thoughts"])
-                                                          yield {"thoughts": part["thoughts"]}
-                                      except json.JSONDecodeError:
-                                            logger.warning(f"Stream JSON 解析失败: {data_str}")
-                          if full_text:
-                                model_message_parts.append({"text": full_text})
-                          if all_thoughts:
-                                model_message_parts.append({"thoughts": all_thoughts})
-                          logger.info("Stream API 请求完成。")
-                          break # Success
+                        logger.info("发起 Stream API 请求...")
+                        full_text = ""
+                        all_thoughts = []
+                        with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
+                            response.raise_for_status()
+                            for line in response.iter_lines():
+                                if not line.startswith("data: "):
+                                    continue
+                                data_str = line[len("data: "):].strip()
+                                if not data_str: continue
+                                try:
+                                    chunk = json.loads(data_str)
+                                    for candidate in chunk.get("candidates", []):
+                                        for part in candidate.get("content", {}).get("parts", []):
+                                            if "text" in part:
+                                                full_text += part["text"]
+                                                yield part["text"]
+                                            if "thoughts" in part: # Handle thoughts
+                                                all_thoughts.append(part["thoughts"])
+                                                yield {"thoughts": part["thoughts"]}
+                                except json.JSONDecodeError:
+                                    logger.warning(f"Stream JSON 解析失败: {data_str}")
+                        if full_text:
+                            model_message_parts.append({"text": full_text})
+                        if all_thoughts:
+                            model_message_parts.append({"thoughts": all_thoughts})
+                        logger.info("Stream API 请求完成。")
+                        break # Success
 
-                    else: # Non-stream
-                          logger.info(f"发起 Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
-                          response = await self.client.post(endpoint, json=body, params={'key': self.apikey})
-                          response.raise_for_status()
-                          result = response.json()
-                          if not result.get("candidates"):
-                              logger.error(f"API 返回无 candidates: {result}")
-                              prompt_feedback = result.get("promptFeedback", {})
-                              if prompt_feedback:
-                                    logger.error(f"Prompt Feedback: {prompt_feedback}")
-                              raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
+                    else:
+                        logger.info(f"发起 Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
+                        response = self.client.post(endpoint, json=body, params={'key': self.apikey})
+                        response.raise_for_status()
+                        result = response.json()
+                        if not result.get("candidates"):
+                            logger.error(f"API 返回无 candidates: {result}")
+                            prompt_feedback = result.get("promptFeedback", {})
+                            if prompt_feedback:
+                                logger.error(f"Prompt Feedback: {prompt_feedback}")
+                            raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
 
-                          candidate = result["candidates"][0]
-                          content_parts = candidate.get("content", {}).get("parts", [])
-                          model_message_parts.extend(content_parts) # Add all parts to history
+                        candidate = result["candidates"][0]
+                        content_parts = candidate.get("content", {}).get("parts", [])
+                        model_message_parts.extend(content_parts) # Add all parts to history
 
-                          thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
-                          text = "".join(part["text"] for part in content_parts if "text" in part)
+                        thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
+                        text = "".join(part["text"] for part in content_parts if "text" in part)
 
-                          if thoughts: # Yield dict if thoughts exist
-                              yield {"thoughts": thoughts, "text": text}
-                          elif text:
-                              yield text
-                          logger.info("Non-Stream API 请求完成。")
-                          break # Success
+                        if thoughts:
+                            yield {"thoughts": thoughts, "text": text}
+                        elif text:
+                            yield text
+                        logger.info("Non-Stream API 请求完成。")
+                        break
 
                 except (httpx.HTTPStatusError, httpx.RequestError, json.JSONDecodeError, RuntimeError) as e:
-                      err_content = ""
-                      if isinstance(e, httpx.HTTPStatusError):
-                            try: err_content = e.response.text
-                            except: pass
-                      logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)} - {err_content}")
-                      if attempt == retries - 1:
-                          raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
-                      await asyncio.sleep(1.5 ** attempt)
+                    err_content = ""
+                    if isinstance(e, httpx.HTTPStatusError):
+                        try: err_content = e.response.text
+                        except: pass
+                    logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)} - {err_content}")
+                    if attempt == retries - 1:
+                        raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
+                    time.sleep(1.5 ** attempt)
 
-          # Add model response to history
           if model_message_parts:
               api_contents.append({"role": "model", "parts": model_message_parts})
 
-
-      async def chat(
-         self,
-         messages: List[Dict[str, any]],
-         stream: bool = False,
-         max_output_tokens: Optional[int] = None,
-         system_instruction: Optional[str] = None,
-         topp: Optional[float] = None,
-         temperature: Optional[float] = None,
-         thinking_budget: Optional[int] = None,
-         topk: Optional[int] = None,
-         retries: int = 2
-     ) -> AsyncGenerator[Union[str, Dict], None]:
-
+      def chat(
+          self,
+          messages: List[Dict[str, any]],
+          stream: bool = False,
+          max_output_tokens: Optional[int] = None,
+          system_instruction: Optional[str] = None,
+          topp: Optional[float] = None,
+          temperature: Optional[float] = None,
+          thinking_budget: Optional[int] = None,
+          topk: Optional[int] = None,
+          retries: int = 2
+      ) -> Generator[Union[str, Dict], None, None]:
           api_contents = []
           for msg in messages:
                 role = msg.get("role")
                 if role == "assistant": role = "model"
                 if role not in ["user", "model"]:
-                      logger.warning(f"跳过 Gemini 不支持的角色: {role}")
-                      continue
+                    logger.warning(f"跳过 Gemini 不支持的角色: {role}")
+                    continue
                 parts = msg.get("parts", [])
                 if not isinstance(parts, list):
-                      parts = [{"text": str(parts)}]
+                    parts = [{"text": str(parts)}]
                 api_contents.append({"role": role, "parts": parts})
 
           try:
-                async for part in self._chat_api(
-                   api_contents,
-                   stream,
-                   max_output_tokens,
-                   system_instruction,
-                   topp,
-                   temperature,
-                   thinking_budget,
-                   topk,
-                   retries
-                ):
-                   yield part
+              for part in self._chat_api(
+                  api_contents,
+                  stream,
+                  max_output_tokens,
+                  system_instruction,
+                  topp,
+                  temperature,
+                  thinking_budget,
+                  topk,
+                  retries
+              ):
+                  yield part
           finally:
-                messages.clear()
-                for content in api_contents:
-                      role = content.get("role")
-                      if role == "model": role = "assistant"
-                      messages.append({"role": role, "parts": content.get("parts", [])})
+              messages.clear()
+              for content in api_contents:
+                  role = content.get("role")
+                  if role == "model": role = "assistant"
+                  messages.append({"role": role, "parts": content.get("parts", [])})
 
-      async def close_client(self):
+      def close_client(self):
          if self.client and not self.client.is_closed:
              logger.info("Closing httpx client for Gemini...")
-             await self.client.aclose()
+             self.client.close()
 
 API_INSTANCE_TYPE = "GEMINI_API_INSTANCE"
 CONTENT_ITEM_TYPE = "GEMINI_CONTENT_ITEM"
 HISTORY_TYPE = "STRING"
 
+
 class GeminiApiLoaderNode:
     def __init__(self):
         self.cached_instance: Optional[GeminiAPI] = None
         self.cached_config_hash = None
-        # 添加一个变量来存储创建实例时的事件循环ID
-        self.cached_loop_id = None
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -349,26 +339,14 @@ class GeminiApiLoaderNode:
         config_str = f"{api_key}{model}{base_url}{proxy_http}{proxy_https}{timeout}"
         current_hash = hash(config_str)
 
-        # 检查事件循环是否已更改
-        try:
-            current_loop = asyncio.get_running_loop()
-            is_loop_ok = self.cached_loop_id == id(current_loop) and not current_loop.is_closed()
-        except RuntimeError:
-            current_loop = None
-            is_loop_ok = False
-
-        if self.cached_instance and self.cached_config_hash == current_hash and is_loop_ok:
+        if self.cached_instance and self.cached_config_hash == current_hash:
             logger.info("使用缓存的 Gemini API 实例")
             return (self.cached_instance,)
 
         if self.cached_instance:
-            log_reason = "配置改变" if self.cached_config_hash != current_hash else "事件循环已改变或关闭"
-            logger.info(f"{log_reason}，关闭旧的 Gemini API 客户端...")
+            logger.info("配置改变，关闭旧的 Gemini API 客户端...")
             try:
-                if self.cached_loop_id and current_loop and not current_loop.is_closed():
-                     asyncio.run_coroutine_threadsafe(self.cached_instance.close_client(), current_loop)
-                else:
-                    asyncio.run(self.cached_instance.close_client())
+                self.cached_instance.close_client()
             except Exception as e:
                 logger.warning(f"关闭旧客户端失败: {e}")
             self.cached_instance = None
@@ -378,21 +356,18 @@ class GeminiApiLoaderNode:
             instance = GeminiAPI(apikey=api_key.strip(), baseurl=base_url.strip(), model=model.strip(), proxies=proxies, timeout=timeout)
             self.cached_instance = instance
             self.cached_config_hash = current_hash
-            if current_loop:
-                self.cached_loop_id = id(current_loop)
             return (instance,)
         except Exception as e:
             logger.error(f"创建 GeminiAPI 实例失败: {e}")
             raise
 
 class GeminiImageEncoderNode:
-    """将 ComfyUI Image 编码为 Gemini inlineData 块"""
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "image": ("IMAGE",),
-                "format": (["png", "jpeg", "webp", "heic", "heif"], {"default": "jpeg"}), # Gemini supported
+                "format": (["png", "jpeg", "webp", "heic", "heif"], {"default": "jpeg"}),
                 "quality": ("INT", {"default": 85, "min": 10, "max": 100, "step": 1}),
             },
         }
@@ -429,7 +404,6 @@ class GeminiImageEncoderNode:
             raise
 
 class GeminiFileUploaderNode:
-    """上传文件到 Gemini File API 并返回 fileData 块"""
     @classmethod
     def INPUT_TYPES(cls):
         input_dir = folder_paths.get_input_directory()
@@ -448,7 +422,7 @@ class GeminiFileUploaderNode:
     FUNCTION = "upload_file"
     CATEGORY = "Gemini API/Content"
 
-    async def upload_file(self, api_instance: GeminiAPI, file_selector: str, use_absolute_path: bool, absolute_path_override: str, display_name: str):
+    def upload_file(self, api_instance: GeminiAPI, file_selector: str, use_absolute_path: bool, absolute_path_override: str, display_name: str):
         if not api_instance: raise ValueError("API 实例未连接")
         file_path = ""
         if use_absolute_path and absolute_path_override: file_path = absolute_path_override
@@ -459,7 +433,7 @@ class GeminiFileUploaderNode:
         logger.info(f"准备上传文件: {file_path}")
 
         try:
-            result = await api_instance.upload_file(file_path, display_name if display_name else None)
+            result = api_instance.upload_file(file_path, display_name if display_name else None)
             file_uri = result.get("fileData", {}).get("fileUri", "ERROR_NO_URI")
             logger.info(f"文件上传完成 -> fileData, URI: {file_uri}")
             return (result, file_uri)
@@ -508,12 +482,12 @@ class GeminiChatNode:
     FUNCTION = "chat"
     CATEGORY = "Gemini API"
 
-    async def chat(self, api_instance: GeminiAPI, user_prompt: str, stream: bool, filter_thoughts: bool,
-                   system_prompt: str = "", history_json_in: str = "[]",
-                   content_part_1: Optional[Dict] = None, content_part_2: Optional[Dict] = None, content_part_3: Optional[Dict] = None,
-                   max_tokens: int = 2048, temperature: float = 0.7, top_p: float = 0.95, top_k: int = 0,
-                   thinking_budget: int = -1, retries: int = 1, should_change: bool = False,
-                   ):
+    def chat(self, api_instance: GeminiAPI, user_prompt: str, stream: bool, filter_thoughts: bool,
+             system_prompt: str = "", history_json_in: str = "[]",
+             content_part_1: Optional[Dict] = None, content_part_2: Optional[Dict] = None, content_part_3: Optional[Dict] = None,
+             max_tokens: int = 2048, temperature: float = 0.7, top_p: float = 0.95, top_k: int = 0,
+             thinking_budget: int = -1, retries: int = 1, should_change: bool = False,
+             ):
         if not api_instance: raise ValueError("API 实例未连接")
         try:
             messages = json.loads(history_json_in or "[]")
@@ -534,11 +508,14 @@ class GeminiChatNode:
             return ("", json.dumps(messages, ensure_ascii=False, indent=2))
 
         messages.append({"role": "user", "parts": user_parts})
-
-        async def run_chat_task(msg_list: List[Dict]):
+        
+        final_text = ""
+        try:
+            logger.info(f"开始 Gemini 聊天请求 (Stream={stream})...")
+            
             final_text_parts = []
-            gen = api_instance.chat(
-                messages=msg_list,
+            chat_generator = api_instance.chat(
+                messages=messages,
                 stream=stream,
                 system_instruction=system_prompt if system_prompt else None,
                 max_output_tokens=max_tokens,
@@ -548,29 +525,24 @@ class GeminiChatNode:
                 thinking_budget= thinking_budget if thinking_budget >=0 else None,
                 retries=retries
             )
-            try:
-                async for part in gen:
-                    if isinstance(part, dict):
-                        thoughts = part.get("thoughts")
-                        text = part.get("text", "")
-                        if thoughts:
-                            thoughts_str = json.dumps(thoughts, ensure_ascii=False)
-                            logger.info(f"THOUGHTS: {thoughts_str}")
-                            if not filter_thoughts:
-                                final_text_parts.append(f"\n[THOUGHTS]: {thoughts_str}\n")
-                        if text:
-                            final_text_parts.append(text)
-                    elif isinstance(part, str):
-                        final_text_parts.append(part)
-            except Exception as e:
-                logger.error(f"Chat API 异步生成器错误: {e}")
-                raise
-            return "".join(final_text_parts)
+            
+            for part in chat_generator:
+                if isinstance(part, dict):
+                    thoughts = part.get("thoughts")
+                    text = part.get("text", "")
+                    if thoughts:
+                        thoughts_str = json.dumps(thoughts, ensure_ascii=False)
+                        logger.info(f"THOUGHTS: {thoughts_str}")
+                        if not filter_thoughts:
+                            final_text_parts.append(f"\n[THOUGHTS]: {thoughts_str}\n")
+                    if text:
+                        final_text_parts.append(text)
+                elif isinstance(part, str):
+                    final_text_parts.append(part)
 
-        try:
-            logger.info(f"开始 Gemini 聊天请求 (Stream={stream})...")
-            final_text = await run_chat_task(messages)
+            final_text = "".join(final_text_parts)
             logger.info("Gemini 聊天请求结束。")
+
         except Exception as e:
             final_text = f"[NODE ERROR]: {type(e).__name__} - {str(e)}"
             logger.error(f"节点执行 Gemini 聊天任务失败: {e}")

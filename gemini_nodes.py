@@ -316,7 +316,7 @@ class GeminiApiLoaderNode:
         return {
             "required": {
                 "api_key": ("STRING", {"default": "YOUR_GEMINI_KEY", "multiline": False}),
-                "model": ("STRING", {"default": "gemini-1.5-flash-latest", "multiline": False}),
+                "model": ("STRING", {"default": "gemini-2.0-flash-001", "multiline": False}),
                 "base_url": ("STRING", {"default": "https://generativelanguage.googleapis.com", "multiline": False}),
             },
             "optional": {

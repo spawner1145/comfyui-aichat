@@ -91,9 +91,33 @@ class OpenAIAPI:
                     file=file_tuple,
                     purpose="user_data"
                 )
-                file_id = file_obj.id
-                logger.info(f"文件 {file_path} 上传成功，ID: {file_id}")
-                return {"input_file": {"file_id": file_id}, "error": None}
+                final_file_obj = None
+                if hasattr(response_obj, 'id') and response_obj.id:
+                    logger.info("API 响应为标准格式，直接使用。")
+                    final_file_obj = response_obj
+                else:
+                    logger.info("响应非标准格式，开始搜索嵌套的文件对象...")
+                    response_dict = response_obj.model_dump()
+                    
+                    found_nested_dict = None
+                    for key, value in response_dict.items():
+                        if isinstance(value, dict) and 'id' in value:
+                            logger.info(f"在键 '{key}' 中找到疑似嵌套的文件对象。")
+                            found_nested_dict = value
+                            break
+
+                    if found_nested_dict:
+                        logger.info("从嵌套的字典中成功重建标准文件对象")
+                        final_file_obj = FileObject(**found_nested_dict)
+
+                if final_file_obj and hasattr(final_file_obj, 'id'):
+                    file_id = final_file_obj.id
+                    logger.info(f"文件 {file_path} 上传并处理成功, ID: {file_id}")
+                    return {"input_file": {"file_id": file_id}, "error": None}
+                else:
+                    error_message = f"无法在API响应中找到有效的文件对象。响应内容: {response_obj.model_dump_json()}"
+                    logger.error(error_message)
+                    raise ValueError(error_message)
 
         except Exception as e:
             logger.error(f"文件 {file_path} 上传失败: {type(e).__name__} - {str(e)}")

@@ -92,12 +92,12 @@ class OpenAIAPI:
                     purpose="user_data"
                 )
                 final_file_obj = None
-                if hasattr(response_obj, 'id') and response_obj.id:
+                if hasattr(file_obj, 'id') and response_obj.id:
                     logger.info("API 响应为标准格式，直接使用。")
-                    final_file_obj = response_obj
+                    final_file_obj = file_obj
                 else:
                     logger.info("响应非标准格式，开始搜索嵌套的文件对象...")
-                    response_dict = response_obj.model_dump()
+                    response_dict = file_obj.model_dump()
                     
                     found_nested_dict = None
                     for key, value in response_dict.items():

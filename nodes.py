@@ -583,7 +583,7 @@ class OpenAIChatNode:
                 "filter_reasoning": ("BOOLEAN", {"default": True, "label_on": "Filter REASONING:", "label_off": "Keep REASONING:"}),
             },
             "optional": {
-                "system_prompt": ("STRING", {"default": default_system, "multiline": True}),
+                "system_prompt": ("STRING", {"default": default_system, "multiline": True, "tooltip": "人设"}),
                 "history_json_in": (HISTORY_TYPE, {"default": "[]", "multiline": True, "dynamicPort": True, "tooltip": "可以把history_json_out连接到这里来实现多轮对话"}),
                 "content_part_1": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
                 "content_part_2": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),

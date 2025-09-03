@@ -9,6 +9,8 @@ import logging
 import io
 
 schema_example = """
+支持三种格式:
+1. 完整的 JSON Schema 对象。
 {
    "type": "object",
    "properties": {
@@ -17,6 +19,8 @@ schema_example = """
    },
    "required": ["name", "age"]
 }
+2. 简化的 properties 对象: {"name": "string", "age": "integer"}
+3. 裸露的键值对: "name": "string", "age": "integer"
 """
 
 #default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
@@ -54,276 +58,308 @@ logger = logging.getLogger('Gemini_ComfyUI')
 logger.setLevel(logging.INFO)
 
 class GeminiAPI:
-      def __init__(
-          self,
-          apikey: str,
-          baseurl: str = "https://generativelanguage.googleapis.com",
-          model: str = "gemini-2.0-flash-001",
-          proxies: Optional[Dict[str, str]] = None,
-          timeout: float = 180.0,
-      ):
-          if not apikey:
-              raise ValueError("Gemini API Key 不能为空")
-          self.apikey = apikey
-          self.baseurl = baseurl.rstrip('/')
-          self.model = model
-          self.client = httpx.Client(
-              base_url=baseurl,
-              params={'key': apikey},
-              proxies=proxies,
-              timeout=timeout
-          )
-          logger.info(f"GeminiAPI Client Initialized: model={self.model}, base_url={self.baseurl}")
+    def __init__(
+        self,
+        apikey: str,
+        baseurl: str = "https://generativelanguage.googleapis.com",
+        model: str = "gemini-2.0-flash-001",
+        proxies: Optional[Dict[str, str]] = None,
+        timeout: float = 180.0,
+    ):
+        if not apikey:
+            raise ValueError("Gemini API Key 不能为空")
+        self.apikey = apikey
+        self.baseurl = baseurl.rstrip('/')
+        self.model = model
+        self.client = httpx.Client(
+            base_url=baseurl,
+            params={'key': apikey},
+            proxies=proxies,
+            timeout=timeout
+        )
+        logger.info(f"GeminiAPI Client Initialized: model={self.model}, base_url={self.baseurl}")
 
-      def upload_file(self, file_path: str, display_name: Optional[str] = None) -> Dict[str, Union[str, None]]:
-          if not os.path.exists(file_path):
-              logger.error(f"文件 {file_path} 不存在")
-              raise FileNotFoundError(f"文件上传失败: 路径 {file_path} 不存在")
-          try:
-              file_size = os.path.getsize(file_path)
-              if file_size > 1.9 * 1024 * 1024 * 1024:  # ~1.9GB limit
-                  raise ValueError(f"文件 {file_path} 大小接近或超过 2GB 限制")
-          except OSError as e:
-              logger.error(f"获取文件 {file_path} 大小失败: {e}")
-              raise
+    def _build_schema_from_string(self, schema_str: str) -> Dict[str, Any]:
+        stripped_str = schema_str.strip()
+        
+        try:
+            parsed_json = json.loads(stripped_str)
+            if isinstance(parsed_json, dict):
+                if "properties" in parsed_json and "type" in parsed_json:
+                    logger.info("检测到完整的 JSON Schema 格式。")
+                    return parsed_json
+                else:
+                    logger.info("检测到简化的对象格式，自动构建完整 Schema。")
+                    properties = {key: {"type": str(value)} for key, value in parsed_json.items()}
+                    required = list(parsed_json.keys())
+                    return {
+                        "type": "object",
+                        "properties": properties,
+                        "required": required
+                    }
+        except json.JSONDecodeError:
+            logger.info("直接解析失败，尝试作为裸键值对处理。")
+            try:
+                wrapped_str = f"{{{stripped_str}}}"
+                parsed_json = json.loads(wrapped_str)
+                if isinstance(parsed_json, dict):
+                    properties = {key: {"type": str(value)} for key, value in parsed_json.items()}
+                    required = list(parsed_json.keys())
+                    return {
+                        "type": "object",
+                        "properties": properties,
+                        "required": required
+                    }
+            except json.JSONDecodeError:
+                raise ValueError(f"无法解析 Schema 字符串。请确保它是完整的 JSON Schema、简化的 JSON 对象或裸露的键值对格式。输入内容：\n{schema_str}")
 
-          mime_type, _ = mimetypes.guess_type(file_path)
-          if not mime_type:
-              mime_type = "application/octet-stream"
-              logger.warning(f"无法检测文件 {file_path} 的 MIME 类型，使用默认值: {mime_type}")
+        raise ValueError(f"无法识别的 Schema 格式。输入内容：\n{schema_str}")
 
-          file_uri = None
-          try:
-              with open(file_path, 'rb') as f:
-                  headers = {"X-Goog-Upload-Protocol": "multipart"}
-                  metadata = {'file': {'displayName': display_name or os.path.basename(file_path), 'mimeType': mime_type}}
-                  files = {
-                      'metadata': (None, json.dumps(metadata), 'application/json'),
-                      'file': (os.path.basename(file_path), f.read(), mime_type)
-                  }
-                  logger.info(f"开始上传文件: {file_path} ({mime_type})")
-                  upload_url = f"{self.baseurl}/upload/v1beta/files"
-                  response = self.client.post(upload_url, files=files, headers=headers)
-                  response.raise_for_status()
-                  file_data = response.json()
-                  logger.debug(f"文件上传原始响应: {file_data}")
-                  file_uri = file_data.get('file', {}).get('uri')
-                  if not file_uri:
-                      raise ValueError(f"上传成功但未返回 file URI: {file_data}")
-                  logger.info(f"文件初步上传成功: {file_uri}")
+    def upload_file(self, file_path: str, display_name: Optional[str] = None) -> Dict[str, Union[str, None]]:
+        if not os.path.exists(file_path):
+            logger.error(f"文件 {file_path} 不存在")
+            raise FileNotFoundError(f"文件上传失败: 路径 {file_path} 不存在")
+        try:
+            file_size = os.path.getsize(file_path)
+            if file_size > 1.9 * 1024 * 1024 * 1024:  # ~1.9GB limit
+                raise ValueError(f"文件 {file_path} 大小接近或超过 2GB 限制")
+        except OSError as e:
+            logger.error(f"获取文件 {file_path} 大小失败: {e}")
+            raise
 
-          except Exception as e:
-              logger.error(f"文件 {file_path} 上传请求失败: {type(e).__name__} - {str(e)}")
-              raise RuntimeError(f"文件 {file_path} 上传请求失败: {type(e).__name__} - {str(e)}") from e
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if not mime_type:
+            mime_type = "application/octet-stream"
+            logger.warning(f"无法检测文件 {file_path} 的 MIME 类型，使用默认值: {mime_type}")
 
-          if not self.wait_for_file_active(file_uri, timeout=120, interval=3):
-              error_msg = f"文件 {file_path} ({file_uri}) 未能在规定时间内变为 ACTIVE 状态或处理失败"
-              logger.error(error_msg)
-              raise TimeoutError(error_msg)
+        file_uri = None
+        try:
+            with open(file_path, 'rb') as f:
+                headers = {"X-Goog-Upload-Protocol": "multipart"}
+                metadata = {'file': {'displayName': display_name or os.path.basename(file_path), 'mimeType': mime_type}}
+                files = {
+                    'metadata': (None, json.dumps(metadata), 'application/json'),
+                    'file': (os.path.basename(file_path), f.read(), mime_type)
+                }
+                logger.info(f"开始上传文件: {file_path} ({mime_type})")
+                upload_url = f"{self.baseurl}/upload/v1beta/files"
+                response = self.client.post(upload_url, files=files, headers=headers)
+                response.raise_for_status()
+                file_data = response.json()
+                logger.debug(f"文件上传原始响应: {file_data}")
+                file_uri = file_data.get('file', {}).get('uri')
+                if not file_uri:
+                    raise ValueError(f"上传成功但未返回 file URI: {file_data}")
+                logger.info(f"文件初步上传成功: {file_uri}")
 
-          logger.info(f"文件 {file_path} 上传并激活成功，URI: {file_uri}")
-          return {"fileData": {"mimeType": mime_type, "fileUri": file_uri} }
+        except Exception as e:
+            logger.error(f"文件 {file_path} 上传请求失败: {type(e).__name__} - {str(e)}")
+            raise RuntimeError(f"文件 {file_path} 上传请求失败: {type(e).__name__} - {str(e)}") from e
 
-      def wait_for_file_active(self, file_uri: str, timeout: int = 120, interval: int = 3) -> bool:
-          try:
-              file_name_part = file_uri.split('/v1beta/')[-1]
-          except:
-              logger.error(f"无法从 URI 解析文件名: {file_uri}")
-              return False
+        if not self.wait_for_file_active(file_uri, timeout=120, interval=3):
+            error_msg = f"文件 {file_path} ({file_uri}) 未能在规定时间内变为 ACTIVE 状态或处理失败"
+            logger.error(error_msg)
+            raise TimeoutError(error_msg)
 
-          start_time = time.monotonic()
-          logger.info(f"开始检查文件状态: {file_name_part}, 超时: {timeout}s, 间隔: {interval}s")
+        logger.info(f"文件 {file_path} 上传并激活成功，URI: {file_uri}")
+        return {"fileData": {"mimeType": mime_type, "fileUri": file_uri} }
 
-          while (time.monotonic() - start_time < timeout):
-              try:
-                  response = self.client.get(f"/v1beta/{file_name_part}")
-                  response.raise_for_status()
-                  file_info = response.json()
-                  state = file_info.get('state')
-                  logger.info(f"文件 {file_name_part} 当前状态: {state}")
-                  if state == "ACTIVE":
-                      return True
-                  elif state == "FAILED":
-                      logger.error(f"文件 {file_name_part} 处理失败。 错误: {file_info.get('error')}")
-                      return False
-                  elif state == "PROCESSING":
-                      time.sleep(interval)
-                  else:
-                      time.sleep(interval)
-              except Exception as e:
-                  logger.error(f"检查文件 {file_name_part} 状态时出错: {type(e).__name__} - {e}, 重试中...")
-                  time.sleep(interval * 2)
-          logger.warning(f"等待文件 {file_name_part} 状态变为 ACTIVE 超时 ({timeout}秒)")
-          return False
+    def wait_for_file_active(self, file_uri: str, timeout: int = 120, interval: int = 3) -> bool:
+        try:
+            file_name_part = file_uri.split('/v1beta/')[-1]
+        except:
+            logger.error(f"无法从 URI 解析文件名: {file_uri}")
+            return False
 
-      def _chat_api(
-          self,
-          api_contents: List[Dict],
-          stream: bool,
-          max_output_tokens: Optional[int] = None,
-          system_instruction: Optional[str] = None,
-          topp: Optional[float] = None,
-          temperature: Optional[float] = None,
-          thinking_budget: Optional[int] = None,
-          topk: Optional[int] = None,
-          response_schema_json: Optional[str] = None,
-          retries: int = 2
-      ) -> Generator[Union[str, Dict], None, None]:
-          body = {"contents": api_contents}
-          if system_instruction:
-              body["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-  
-          generation_config = {}
-          if max_output_tokens is not None and max_output_tokens > 0:
-              generation_config["maxOutputTokens"] = max_output_tokens
-          if topp is not None:
-              generation_config["topP"] = max(0.0, min(1.0, topp))
-          if temperature is not None:
-              generation_config["temperature"] = max(0.0, min(2.0, temperature))
-          if topk is not None and topk > 0:
-                  generation_config["topK"] = topk
-          if thinking_budget is not None:
-                  generation_config["thinkingConfig"] = {"thinkingBudget": thinking_budget}
+        start_time = time.monotonic()
+        logger.info(f"开始检查文件状态: {file_name_part}, 超时: {timeout}s, 间隔: {interval}s")
 
-          if response_schema_json and response_schema_json.strip():
-              generation_config["responseMimeType"] = "application/json"
-              try:
-                  schema_dict = json.loads(response_schema_json)
-                  generation_config["responseSchema"] = schema_dict
-                  logger.info("检测到 JSON Schema，已自动启用结构化输出模式。")
-              except json.JSONDecodeError as e:
-                  raise ValueError(f"输入的 JSON Schema 格式错误: {e}")
+        while (time.monotonic() - start_time < timeout):
+            try:
+                response = self.client.get(f"/v1beta/{file_name_part}")
+                response.raise_for_status()
+                file_info = response.json()
+                state = file_info.get('state')
+                logger.info(f"文件 {file_name_part} 当前状态: {state}")
+                if state == "ACTIVE":
+                    return True
+                elif state == "FAILED":
+                    logger.error(f"文件 {file_name_part} 处理失败。 错误: {file_info.get('error')}")
+                    return False
+                elif state == "PROCESSING":
+                    time.sleep(interval)
+                else:
+                    time.sleep(interval)
+            except Exception as e:
+                logger.error(f"检查文件 {file_name_part} 状态时出错: {type(e).__name__} - {e}, 重试中...")
+                time.sleep(interval * 2)
+        logger.warning(f"等待文件 {file_name_part} 状态变为 ACTIVE 超时 ({timeout}秒)")
+        return False
 
-          if generation_config:
-              body["generationConfig"] = generation_config
-  
-          endpoint = f"/v1beta/models/{self.model}:{'streamGenerateContent' if stream else 'generateContent'}"
-          logger.info(f"请求端点: {self.baseurl}{endpoint}")
-          logger.debug(f"请求体: {json.dumps(body, ensure_ascii=False, indent=2)}")
-  
-          model_message_parts = []
-  
-          for attempt in range(retries):
-                  try:
-                      if stream:
-                          logger.info("发起 Stream API 请求...")
-                          full_text = ""
-                          all_thoughts = []
-                          with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
-                              response.raise_for_status()
-                              for line in response.iter_lines():
-                                  if not line.startswith("data: "):
-                                      continue
-                                  data_str = line[len("data: "):].strip()
-                                  if not data_str: continue
-                                  try:
-                                      chunk = json.loads(data_str)
-                                      for candidate in chunk.get("candidates", []):
-                                          for part in candidate.get("content", {}).get("parts", []):
-                                              if "text" in part:
-                                                  full_text += part["text"]
-                                                  yield part["text"]
-                                              if "thoughts" in part:
-                                                  all_thoughts.append(part["thoughts"])
-                                                  yield {"thoughts": part["thoughts"]}
-                                  except json.JSONDecodeError:
-                                      logger.warning(f"Stream JSON 解析失败: {data_str}")
-                          if full_text:
-                              model_message_parts.append({"text": full_text})
-                          if all_thoughts:
-                              model_message_parts.append({"thoughts": all_thoughts})
-                          logger.info("Stream API 请求完成。")
-                          break
-  
-                      else:
-                          logger.info(f"发起 Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
-                          response = self.client.post(endpoint, json=body, params={'key': self.apikey})
-                          response.raise_for_status()
-                          result = response.json()
-                          if not result.get("candidates"):
-                              logger.error(f"API 返回无 candidates: {result}")
-                              prompt_feedback = result.get("promptFeedback", {})
-                              if prompt_feedback:
-                                  logger.error(f"Prompt Feedback: {prompt_feedback}")
-                              raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
-  
-                          candidate = result["candidates"][0]
-                          content_parts = candidate.get("content", {}).get("parts", [])
-                          model_message_parts.extend(content_parts)
-  
-                          thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
-                          text = "".join(part["text"] for part in content_parts if "text" in part)
-  
-                          if thoughts:
-                              yield {"thoughts": thoughts, "text": text}
-                          elif text:
-                              yield text
-                          logger.info("Non-Stream API 请求完成。")
-                          break
-  
-                  except (httpx.HTTPStatusError, httpx.RequestError, json.JSONDecodeError, RuntimeError) as e:
-                      err_content = ""
-                      if isinstance(e, httpx.HTTPStatusError):
-                          try: err_content = e.response.text
-                          except: pass
-                      logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)} - {err_content}")
-                      if attempt == retries - 1:
-                          raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
-                      time.sleep(1.5 ** attempt)
-  
-          if model_message_parts:
-              api_contents.append({"role": "model", "parts": model_message_parts})
+    def _chat_api(
+        self,
+        api_contents: List[Dict],
+        stream: bool,
+        max_output_tokens: Optional[int] = None,
+        system_instruction: Optional[str] = None,
+        topp: Optional[float] = None,
+        temperature: Optional[float] = None,
+        thinking_budget: Optional[int] = None,
+        topk: Optional[int] = None,
+        response_schema_json: Optional[str] = None,
+        retries: int = 2
+    ) -> Generator[Union[str, Dict], None, None]:
+        body = {"contents": api_contents}
+        if system_instruction:
+            body["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+ 
+        generation_config = {}
+        if max_output_tokens is not None and max_output_tokens > 0:
+            generation_config["maxOutputTokens"] = max_output_tokens
+        if topp is not None:
+            generation_config["topP"] = max(0.0, min(1.0, topp))
+        if temperature is not None:
+            generation_config["temperature"] = max(0.0, min(2.0, temperature))
+        if topk is not None and topk > 0:
+                generation_config["topK"] = topk
+        if thinking_budget is not None:
+                generation_config["thinkingConfig"] = {"thinkingBudget": thinking_budget}
 
-      def chat(
-          self,
-          messages: List[Dict[str, any]],
-          stream: bool = False,
-          max_output_tokens: Optional[int] = None,
-          system_instruction: Optional[str] = None,
-          topp: Optional[float] = None,
-          temperature: Optional[float] = None,
-          thinking_budget: Optional[int] = None,
-          topk: Optional[int] = None,
-          response_schema_json: Optional[str] = None,
-          retries: int = 2
-      ) -> Generator[Union[str, Dict], None, None]:
-          api_contents = []
-          for msg in messages:
-                  role = msg.get("role")
-                  if role == "assistant": role = "model"
-                  if role not in ["user", "model"]:
-                      logger.warning(f"跳过 Gemini 不支持的角色: {role}")
-                      continue
-                  parts = msg.get("parts", [])
-                  if not isinstance(parts, list):
-                      parts = [{"text": str(parts)}]
-                  api_contents.append({"role": role, "parts": parts})
-  
-          try:
-              for part in self._chat_api(
-                  api_contents,
-                  stream,
-                  max_output_tokens,
-                  system_instruction,
-                  topp,
-                  temperature,
-                  thinking_budget,
-                  topk,
-                  response_schema_json,
-                  retries
-              ):
-                  yield part
-          finally:
-              messages.clear()
-              for content in api_contents:
-                  role = content.get("role")
-                  if role == "model": role = "assistant"
-                  messages.append({"role": role, "parts": content.get("parts", [])})
+        if response_schema_json and response_schema_json.strip():
+            generation_config["responseMimeType"] = "application/json"
+            try:
+                schema_dict = self._build_schema_from_string(response_schema_json)
+                generation_config["responseSchema"] = schema_dict
+                logger.info("已成功构建并应用 JSON Schema。")
+            except ValueError as e:
+                raise e
 
-      def close_client(self):
-         if self.client and not self.client.is_closed:
-             logger.info("Closing httpx client for Gemini...")
-             self.client.close()
+        if generation_config:
+            body["generationConfig"] = generation_config
+ 
+        endpoint = f"/v1beta/models/{self.model}:{'streamGenerateContent' if stream else 'generateContent'}"
+        logger.info(f"请求端点: {self.baseurl}{endpoint}")
+        logger.debug(f"请求体: {json.dumps(body, ensure_ascii=False, indent=2)}")
+ 
+        model_message_parts = []
+ 
+        for attempt in range(retries):
+            # ... (这部分请求逻辑保持不变) ...
+            try:
+                if stream:
+                    logger.info("发起 Stream API 请求...")
+                    full_text = ""
+                    all_thoughts = []
+                    with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
+                        response.raise_for_status()
+                        for line in response.iter_lines():
+                            if not line.startswith("data: "):
+                                continue
+                            data_str = line[len("data: "):].strip()
+                            if not data_str: continue
+                            try:
+                                chunk = json.loads(data_str)
+                                for candidate in chunk.get("candidates", []):
+                                    for part in candidate.get("content", {}).get("parts", []):
+                                        if "text" in part:
+                                            full_text += part["text"]
+                                            yield part["text"]
+                                        if "thoughts" in part:
+                                            all_thoughts.append(part["thoughts"])
+                                            yield {"thoughts": part["thoughts"]}
+                            except json.JSONDecodeError:
+                                logger.warning(f"Stream JSON 解析失败: {data_str}")
+                    if full_text:
+                        model_message_parts.append({"text": full_text})
+                    if all_thoughts:
+                        model_message_parts.append({"thoughts": all_thoughts})
+                    logger.info("Stream API 请求完成。")
+                    break
+                else:
+                    logger.info(f"发起 Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
+                    response = self.client.post(endpoint, json=body, params={'key': self.apikey})
+                    response.raise_for_status()
+                    result = response.json()
+                    if not result.get("candidates"):
+                        logger.error(f"API 返回无 candidates: {result}")
+                        prompt_feedback = result.get("promptFeedback", {})
+                        if prompt_feedback:
+                            logger.error(f"Prompt Feedback: {prompt_feedback}")
+                        raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
+                    candidate = result["candidates"][0]
+                    content_parts = candidate.get("content", {}).get("parts", [])
+                    model_message_parts.extend(content_parts)
+                    thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
+                    text = "".join(part["text"] for part in content_parts if "text" in part)
+                    if thoughts:
+                        yield {"thoughts": thoughts, "text": text}
+                    elif text:
+                        yield text
+                    logger.info("Non-Stream API 请求完成。")
+                    break
+            except (httpx.HTTPStatusError, httpx.RequestError, json.JSONDecodeError, RuntimeError) as e:
+                err_content = ""
+                if isinstance(e, httpx.HTTPStatusError):
+                    try: err_content = e.response.text
+                    except: pass
+                logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)} - {err_content}")
+                if attempt == retries - 1:
+                    raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
+                time.sleep(1.5 ** attempt)
+ 
+        if model_message_parts:
+            api_contents.append({"role": "model", "parts": model_message_parts})
+
+    def chat(
+        self,
+        messages: List[Dict[str, any]],
+        stream: bool = False,
+        max_output_tokens: Optional[int] = None,
+        system_instruction: Optional[str] = None,
+        topp: Optional[float] = None,
+        temperature: Optional[float] = None,
+        thinking_budget: Optional[int] = None,
+        topk: Optional[int] = None,
+        response_schema_json: Optional[str] = None,
+        retries: int = 2
+    ) -> Generator[Union[str, Dict], None, None]:
+        api_contents = []
+        for msg in messages:
+                role = msg.get("role")
+                if role == "assistant": role = "model"
+                if role not in ["user", "model"]:
+                    logger.warning(f"跳过 Gemini 不支持的角色: {role}")
+                    continue
+                parts = msg.get("parts", [])
+                if not isinstance(parts, list):
+                    parts = [{"text": str(parts)}]
+                api_contents.append({"role": role, "parts": parts})
+ 
+        try:
+            for part in self._chat_api(
+                api_contents,
+                stream,
+                max_output_tokens,
+                system_instruction,
+                topp,
+                temperature,
+                thinking_budget,
+                topk,
+                response_schema_json,
+                retries
+            ):
+                yield part
+        finally:
+            messages.clear()
+            for content in api_contents:
+                role = content.get("role")
+                if role == "model": role = "assistant"
+                messages.append({"role": role, "parts": content.get("parts", [])})
+
+    def close_client(self):
+        if self.client and not self.client.is_closed:
+            logger.info("Closing httpx client for Gemini...")
+            self.client.close()
 
 API_INSTANCE_TYPE = "GEMINI_API_INSTANCE"
 CONTENT_ITEM_TYPE = "GEMINI_CONTENT_ITEM"
@@ -500,7 +536,7 @@ class GeminiChatNode:
                 "response_schema_json": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": f"在此处输入 JSON Schema 以启用结构化输出 (JSON 模式)。\n如果留空，则为普通文本模式。输入例如：\n{schema_example}"
+                    "tooltip": f"在此处输入 JSON Schema 以启用结构化输出 (JSON 模式)。\n如果留空，则为普通文本模式。{schema_example}"
                 }),
 
                 "retries": ("INT", {"default": 2, "min": 0, "max": 5, "step": 1}),

@@ -499,9 +499,15 @@ class GeminiChatNode:
 
         user_parts = []
         if user_prompt: user_parts.append({"text": user_prompt})
+        
         possible_parts = [content_part_1, content_part_2, content_part_3]
         for part in possible_parts:
-            if part and isinstance(part, dict):
+            if not part:
+                continue
+            
+            if isinstance(part, list):
+                user_parts.extend(part)
+            elif isinstance(part, dict):
                 user_parts.append(part)
 
         if not user_parts:
@@ -562,3 +568,36 @@ class GeminiChatNode:
             return float("NaN")
         else:
             return False
+
+class GeminiContentConnector:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "optional": {
+                "content_part_1": (CONTENT_ITEM_TYPE, {}),
+                "content_part_2": (CONTENT_ITEM_TYPE, {}),
+                "content_part_3": (CONTENT_ITEM_TYPE, {}),
+            }
+        }
+
+    RETURN_TYPES = (CONTENT_ITEM_TYPE,)
+    RETURN_NAMES = ("content_parts",)
+    FUNCTION = "aggregate"
+    CATEGORY = "Gemini API/Content"
+
+    def aggregate(self, 
+                  content_part_1: Optional[Union[Dict, List]] = None, 
+                  content_part_2: Optional[Union[Dict, List]] = None, 
+                  content_part_3: Optional[Union[Dict, List]] = None):
+        
+        aggregated_list = []
+        for item in [content_part_1, content_part_2, content_part_3]:
+            if not item:
+                continue
+            
+            if isinstance(item, list):
+                aggregated_list.extend(item)
+            elif isinstance(item, dict):
+                aggregated_list.append(item)
+        
+        return (aggregated_list,)

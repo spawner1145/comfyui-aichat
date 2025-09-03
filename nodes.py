@@ -41,7 +41,7 @@ except ImportError:
 
 logger = logging.getLogger('OpenAI_ComfyUI')
 logger.setLevel(logging.INFO)
-from openai import OpenAI
+from openai import OpenAI, APIResponseValidationError
 
 class OpenAIAPI:
     def __init__(
@@ -69,31 +69,44 @@ class OpenAIAPI:
         if not os.path.exists(file_path):
             logger.error(f"文件 {file_path} 不存在")
             raise FileNotFoundError(f"文件上传失败: 路径 {file_path} 不存在")
-            
-        try:
-            file_size = os.path.getsize(file_path)
-        except OSError as e:
-            logger.error(f"获取文件 {file_path} 大小失败: {e}")
-            raise
-
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if not mime_type:
-            mime_type = "application/octet-stream"
-            logger.warning(f"无法检测文件 {file_path} 的 MIME 类型，使用默认值: {mime_type}")
 
         try:
-            logger.info(f"开始上传文件: {file_path} ({mime_type})")
+            logger.info(f"开始上传文件: {file_path}")
             with open(file_path, 'rb') as f:
                 file_content = f.read()
-                file_tuple = (display_name or os.path.basename(file_path), file_content, mime_type)
+
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = "application/octet-stream"
+            
+            file_tuple = (display_name or os.path.basename(file_path), file_content, mime_type)
+            
+            try:
+                logger.debug("Attempting file upload with standard client method...")
                 file_obj = self.client.files.create(
                     file=file_tuple,
                     purpose="user_data"
                 )
+                
                 file_id = file_obj.id
-                logger.info(f"文件 {file_path} 上传成功，ID: {file_id}")
+                logger.info(f"文件 {file_path} 上传成功 (标准响应)，ID: {file_id}")
                 return {"input_file": {"file_id": file_id}, "error": None}
 
+            except APIResponseValidationError as e:
+                logger.info("Standard client method failed validation. Attempting to parse custom response format.")
+                response_json = e.response.json()
+                
+                if response_json.get("status") is True and "data" in response_json:
+                    file_id = response_json["data"].get("id")
+                    if file_id:
+                        logger.info(f"文件 {file_path} 上传成功 (自定义响应)，ID: {file_id}")
+                        return {"input_file": {"file_id": file_id}, "error": None}
+                    else:
+                        raise ValueError("自定义解析错误：API 响应成功，但在 'data' 对象中未找到 'id'")
+                else:
+                    logger.error(f"Custom response parsing failed. API response: {response_json}")
+                    raise e
+        
         except Exception as e:
             logger.error(f"文件 {file_path} 上传失败: {type(e).__name__} - {str(e)}")
             raise RuntimeError(f"文件 {file_path} 上传失败: {type(e).__name__} - {str(e)}") from e

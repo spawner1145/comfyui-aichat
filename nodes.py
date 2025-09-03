@@ -556,11 +556,12 @@ class OpenAIChatNode:
         
         possible_parts = [content_part_1, content_part_2, content_part_3]
         for part in possible_parts:
-            if part and isinstance(part, dict):
-                if "input_image" in part or "input_file" in part or "type" in part:
-                    user_content.append(part)
-                else:
-                    logger.warning(f"跳过无效的内容块输入: {part}")
+            if not part:
+                continue
+            if isinstance(part, list):
+                user_content.extend(part)
+            elif isinstance(part, dict):
+                user_content.append(part)
 
         final_user_content = user_content
 
@@ -612,3 +613,36 @@ class OpenAIChatNode:
             return float("NaN")
         else:
             return False
+
+class OpenAIContentConnector:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "optional": {
+                "content_part_1": (CONTENT_ITEM_TYPE, {}),
+                "content_part_2": (CONTENT_ITEM_TYPE, {}),
+                "content_part_3": (CONTENT_ITEM_TYPE, {}),
+            }
+        }
+
+    RETURN_TYPES = (CONTENT_ITEM_TYPE,)
+    RETURN_NAMES = ("content_parts",)
+    FUNCTION = "aggregate"
+    CATEGORY = "OpenAI API/Content"
+
+    def aggregate(self, 
+                  content_part_1: Optional[Union[Dict, List]] = None, 
+                  content_part_2: Optional[Union[Dict, List]] = None, 
+                  content_part_3: Optional[Union[Dict, List]] = None):
+        
+        aggregated_list = []
+        for item in [content_part_1, content_part_2, content_part_3]:
+            if not item:
+                continue
+            
+            if isinstance(item, list):
+                aggregated_list.extend(item)
+            elif isinstance(item, dict):
+                aggregated_list.append(item)
+        
+        return (aggregated_list,)

@@ -97,10 +97,10 @@ class OpenAIAPI:
                     final_file_obj = file_obj
                 else:
                     logger.info("响应非标准格式，开始搜索嵌套的文件对象...")
-                    response_dict = file_obj.model_dump()
+                    file_dict = file_obj.model_dump()
                     
                     found_nested_dict = None
-                    for key, value in response_dict.items():
+                    for key, value in file_dict.items():
                         if isinstance(value, dict) and 'id' in value:
                             logger.info(f"在键 '{key}' 中找到疑似嵌套的文件对象。")
                             found_nested_dict = value
@@ -115,7 +115,7 @@ class OpenAIAPI:
                     logger.info(f"文件 {file_path} 上传并处理成功, ID: {file_id}")
                     return {"input_file": {"file_id": file_id}, "error": None}
                 else:
-                    error_message = f"无法在API响应中找到有效的文件对象。响应内容: {response_obj.model_dump_json()}"
+                    error_message = f"无法在API响应中找到有效的文件对象。响应内容: {file_obj.model_dump_json()}"
                     logger.error(error_message)
                     raise ValueError(error_message)
 

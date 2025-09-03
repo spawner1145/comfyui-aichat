@@ -26,7 +26,6 @@ default_system = """将danboorutag标签和图片中的特征结合(如果有)�
 
 特殊标签很重要
 记住了吗？"""
-default_system = "You are a Prompt optimizer designed to rewrite user inputs into high-quality Prompts that are more complete and expressive while preserving the original meaning.\nTask Requirements:\n1. For overly brief user inputs, reasonably infer and add details to enhance the visual completeness without altering the core content;\n2. Refine descriptions of subject characteristics, visual style, spatial relationships, and shot composition;\n3. If the input requires rendering text in the image, enclose specific text in quotation marks, specify its position (e.g., top-left corner, bottom-right corner) and style. This text should remain unaltered and not translated;\n4. Match the Prompt to a precise, niche style aligned with the user’s intent. If unspecified, choose the most appropriate style (e.g., realistic photography style);\n5. Please ensure that the Rewritten Prompt is less than 200 words.\nRewritten Prompt Examples:\n1. Dunhuang mural art style: Chinese animated illustration, masterwork. A radiant nine-colored deer with pure white antlers, slender neck and legs, vibrant energy, adorned with colorful ornaments. Divine flying apsaras aura, ethereal grace, elegant form. Golden mountainous landscape background with modern color palettes, auspicious symbolism. Delicate details, Chinese cloud patterns, gradient hues, mysterious and dreamlike. Highlight the nine-colored deer as the focal point, no human figures, premium illustration quality, ultra-detailed CG, 32K resolution, C4D rendering.\n2. Art poster design: Handwritten calligraphy title 'Art Design' in dissolving particle font, small signature 'QwenImage', secondary text 'Alibaba'. Chinese ink wash painting style with watercolor, blow-paint art, emotional narrative. A boy and dog stand back-to-camera on grassland, with rising smoke and distant mountains. Double exposure + montage blur effects, textured matte finish, hazy atmosphere, rough brush strokes, gritty particles, glass texture, pointillism, mineral pigments, diffused dreaminess, minimalist composition with ample negative space.\n3. Black-haired Chinese adult male, portrait above the collar. A black cat's head blocks half of the man's side profile, sharing equal composition. Shallow green jungle background. Graffiti style, clean minimalism, thick strokes. Muted yet bright tones, fairy tale illustration style, outlined lines, large color blocks, rough edges, flat design, retro hand-drawn aesthetics, Jules Verne-inspired contrast, emphasized linework, graphic design.\n4. Fashion photo of four young models showing phone lanyards. Diverse poses: two facing camera smiling, two side-view conversing. Casual light-colored outfits contrast with vibrant lanyards. Minimalist white/grey background. Focus on upper bodies highlighting lanyard details.\n5. Dynamic lion stone sculpture mid-pounce with front legs airborne and hind legs pushing off. Smooth lines and defined muscles show power. Faded ancient courtyard background with trees and stone steps. Weathered surface gives antique look. Documentary photography style with fine details."
 
 try:
     import torch
@@ -91,33 +90,9 @@ class OpenAIAPI:
                     file=file_tuple,
                     purpose="user_data"
                 )
-                final_file_obj = None
-                if hasattr(file_obj, 'id') and response_obj.id:
-                    logger.info("API 响应为标准格式，直接使用。")
-                    final_file_obj = file_obj
-                else:
-                    logger.info("响应非标准格式，开始搜索嵌套的文件对象...")
-                    file_dict = file_obj.model_dump()
-                    
-                    found_nested_dict = None
-                    for key, value in file_dict.items():
-                        if isinstance(value, dict) and 'id' in value:
-                            logger.info(f"在键 '{key}' 中找到疑似嵌套的文件对象。")
-                            found_nested_dict = value
-                            break
-
-                    if found_nested_dict:
-                        logger.info("从嵌套的字典中成功重建标准文件对象")
-                        final_file_obj = FileObject(**found_nested_dict)
-
-                if final_file_obj and hasattr(final_file_obj, 'id'):
-                    file_id = final_file_obj.id
-                    logger.info(f"文件 {file_path} 上传并处理成功, ID: {file_id}")
-                    return {"input_file": {"file_id": file_id}, "error": None}
-                else:
-                    error_message = f"无法在API响应中找到有效的文件对象。响应内容: {file_obj.model_dump_json()}"
-                    logger.error(error_message)
-                    raise ValueError(error_message)
+                file_id = file_obj.id
+                logger.info(f"文件 {file_path} 上传成功，ID: {file_id}")
+                return {"input_file": {"file_id": file_id}, "error": None}
 
         except Exception as e:
             logger.error(f"文件 {file_path} 上传失败: {type(e).__name__} - {str(e)}")

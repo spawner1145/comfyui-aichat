@@ -10,14 +10,18 @@ import io
 import time
 
 schema_example = """
+支持三种格式:
+1. 完整的 JSON Schema 对象。
 {
-  "type": "object",
-  "properties": {
-    "name": {"type": "string"},
-    "age": {"type": "integer"}
-  },
-  "required": ["name", "age"]
+   "type": "object",
+   "properties": {
+       "name": {"type": "string"},
+       "age": {"type": "integer"}
+   },
+   "required": ["name", "age"]
 }
+2. 简化的 properties 对象: {"name": "string", "age": "integer"}
+3. 裸露的键值对: "name": "string", "age": "integer"
 """
 
 #default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
@@ -75,6 +79,42 @@ class OpenAIAPI:
             http_client=http_client
         )
         logger.info(f"OpenAIAPI Client Initialized: model={self.model}, base_url={self.baseurl}")
+
+    def _build_schema_from_string(self, schema_str: str) -> Dict[str, Any]:
+        stripped_str = schema_str.strip()
+        
+        try:
+            parsed_json = json.loads(stripped_str)
+            if isinstance(parsed_json, dict):
+                if "properties" in parsed_json and "type" in parsed_json:
+                    logger.info("检测到完整的 JSON Schema 格式。")
+                    return parsed_json
+                else:
+                    logger.info("检测到简化的对象格式，自动构建完整 Schema。")
+                    properties = {key: {"type": str(value)} for key, value in parsed_json.items()}
+                    required = list(parsed_json.keys())
+                    return {
+                        "type": "object",
+                        "properties": properties,
+                        "required": required
+                    }
+        except json.JSONDecodeError:
+            logger.info("直接解析失败，尝试作为裸键值对处理。")
+            try:
+                wrapped_str = f"{{{stripped_str}}}"
+                parsed_json = json.loads(wrapped_str)
+                if isinstance(parsed_json, dict):
+                    properties = {key: {"type": str(value)} for key, value in parsed_json.items()}
+                    required = list(parsed_json.keys())
+                    return {
+                        "type": "object",
+                        "properties": properties,
+                        "required": required
+                    }
+            except json.JSONDecodeError:
+                raise ValueError(f"无法解析 Schema 字符串。请确保它是完整的 JSON Schema、简化的 JSON 对象或裸露的键值对格式。输入内容：\n{schema_str}")
+
+        raise ValueError(f"无法识别的 Schema 格式。输入内容：\n{schema_str}")
 
     def upload_file(self, file_path: str, display_name: Optional[str] = None) -> Dict[str, Union[str, None]]:
         if not os.path.exists(file_path):
@@ -225,7 +265,7 @@ class OpenAIAPI:
 
         if response_schema_json and response_schema_json.strip():
             try:
-                schema_dict = json.loads(response_schema_json)
+                schema_dict = self._build_schema_from_string(response_schema_json)
                 response_format = {
                     "type": "json_schema",
                     "json_schema": {
@@ -235,9 +275,9 @@ class OpenAIAPI:
                     }
                 }
                 request_params["response_format"] = response_format
-                logger.info("检测到 JSON Schema，已自动启用结构化输出模式。")
-            except json.JSONDecodeError as e:
-                raise ValueError(f"输入的 JSON Schema 格式错误: {e}")
+                logger.info("已成功构建并应用 JSON Schema。")
+            except ValueError as e:
+                raise e
         
         request_params = {k: v for k, v in request_params.items() if v is not None}
         
@@ -555,7 +595,7 @@ class OpenAIChatNode:
                 "response_schema_json": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": f"在此处输入 JSON Schema 以启用结构化输出 (JSON 模式)。\n如果留空，则为普通文本模式。输入例如：\n{schema_example}"
+                    "tooltip": f"在此处输入 JSON Schema 以启用结构化输出 (JSON 模式)。\n如果留空，则为普通文本模式。输入例如：{schema_example}"
                 }),
 
                 "retries": ("INT", {"default": 2, "min": 0, "max": 5, "step": 1}),

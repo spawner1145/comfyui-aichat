@@ -8,6 +8,17 @@ from typing import Generator, Dict, List, Optional, Union, Any
 import logging
 import io
 
+schema_example = """
+{
+   "type": "object",
+   "properties": {
+       "name": {"type": "string"},
+       "age": {"type": "integer"}
+   },
+   "required": ["name", "age"]
+}
+"""
+
 #default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
 default_system = """将danboorutag标签和图片中的特征结合(如果有)转化成自然语言，你可以将这些标签和图片(如果有)作为参考，但不要完全依赖它们，因为可能存在错误的标签。优先使用你自己的观察，并使用更合适的同义词进行描述。- 注意事项：
      - 确保场景描述的准确性。
@@ -155,12 +166,13 @@ class GeminiAPI:
           temperature: Optional[float] = None,
           thinking_budget: Optional[int] = None,
           topk: Optional[int] = None,
+          response_schema_json: Optional[str] = None,
           retries: int = 2
       ) -> Generator[Union[str, Dict], None, None]:
           body = {"contents": api_contents}
           if system_instruction:
               body["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-
+  
           generation_config = {}
           if max_output_tokens is not None and max_output_tokens > 0:
               generation_config["maxOutputTokens"] = max_output_tokens
@@ -173,83 +185,92 @@ class GeminiAPI:
           if thinking_budget is not None:
                   generation_config["thinkingConfig"] = {"thinkingBudget": thinking_budget}
 
+          if response_schema_json and response_schema_json.strip():
+              generation_config["responseMimeType"] = "application/json"
+              try:
+                  schema_dict = json.loads(response_schema_json)
+                  generation_config["responseSchema"] = schema_dict
+                  logger.info("检测到 JSON Schema，已自动启用结构化输出模式。")
+              except json.JSONDecodeError as e:
+                  raise ValueError(f"输入的 JSON Schema 格式错误: {e}")
+
           if generation_config:
               body["generationConfig"] = generation_config
-
+  
           endpoint = f"/v1beta/models/{self.model}:{'streamGenerateContent' if stream else 'generateContent'}"
           logger.info(f"请求端点: {self.baseurl}{endpoint}")
           logger.debug(f"请求体: {json.dumps(body, ensure_ascii=False, indent=2)}")
-
+  
           model_message_parts = []
-
+  
           for attempt in range(retries):
-                try:
-                    if stream:
-                        logger.info("发起 Stream API 请求...")
-                        full_text = ""
-                        all_thoughts = []
-                        with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
-                            response.raise_for_status()
-                            for line in response.iter_lines():
-                                if not line.startswith("data: "):
-                                    continue
-                                data_str = line[len("data: "):].strip()
-                                if not data_str: continue
-                                try:
-                                    chunk = json.loads(data_str)
-                                    for candidate in chunk.get("candidates", []):
-                                        for part in candidate.get("content", {}).get("parts", []):
-                                            if "text" in part:
-                                                full_text += part["text"]
-                                                yield part["text"]
-                                            if "thoughts" in part: # Handle thoughts
-                                                all_thoughts.append(part["thoughts"])
-                                                yield {"thoughts": part["thoughts"]}
-                                except json.JSONDecodeError:
-                                    logger.warning(f"Stream JSON 解析失败: {data_str}")
-                        if full_text:
-                            model_message_parts.append({"text": full_text})
-                        if all_thoughts:
-                            model_message_parts.append({"thoughts": all_thoughts})
-                        logger.info("Stream API 请求完成。")
-                        break # Success
-
-                    else:
-                        logger.info(f"发起 Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
-                        response = self.client.post(endpoint, json=body, params={'key': self.apikey})
-                        response.raise_for_status()
-                        result = response.json()
-                        if not result.get("candidates"):
-                            logger.error(f"API 返回无 candidates: {result}")
-                            prompt_feedback = result.get("promptFeedback", {})
-                            if prompt_feedback:
-                                logger.error(f"Prompt Feedback: {prompt_feedback}")
-                            raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
-
-                        candidate = result["candidates"][0]
-                        content_parts = candidate.get("content", {}).get("parts", [])
-                        model_message_parts.extend(content_parts) # Add all parts to history
-
-                        thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
-                        text = "".join(part["text"] for part in content_parts if "text" in part)
-
-                        if thoughts:
-                            yield {"thoughts": thoughts, "text": text}
-                        elif text:
-                            yield text
-                        logger.info("Non-Stream API 请求完成。")
-                        break
-
-                except (httpx.HTTPStatusError, httpx.RequestError, json.JSONDecodeError, RuntimeError) as e:
-                    err_content = ""
-                    if isinstance(e, httpx.HTTPStatusError):
-                        try: err_content = e.response.text
-                        except: pass
-                    logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)} - {err_content}")
-                    if attempt == retries - 1:
-                        raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
-                    time.sleep(1.5 ** attempt)
-
+                  try:
+                      if stream:
+                          logger.info("发起 Stream API 请求...")
+                          full_text = ""
+                          all_thoughts = []
+                          with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
+                              response.raise_for_status()
+                              for line in response.iter_lines():
+                                  if not line.startswith("data: "):
+                                      continue
+                                  data_str = line[len("data: "):].strip()
+                                  if not data_str: continue
+                                  try:
+                                      chunk = json.loads(data_str)
+                                      for candidate in chunk.get("candidates", []):
+                                          for part in candidate.get("content", {}).get("parts", []):
+                                              if "text" in part:
+                                                  full_text += part["text"]
+                                                  yield part["text"]
+                                              if "thoughts" in part:
+                                                  all_thoughts.append(part["thoughts"])
+                                                  yield {"thoughts": part["thoughts"]}
+                                  except json.JSONDecodeError:
+                                      logger.warning(f"Stream JSON 解析失败: {data_str}")
+                          if full_text:
+                              model_message_parts.append({"text": full_text})
+                          if all_thoughts:
+                              model_message_parts.append({"thoughts": all_thoughts})
+                          logger.info("Stream API 请求完成。")
+                          break
+  
+                      else:
+                          logger.info(f"发起 Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
+                          response = self.client.post(endpoint, json=body, params={'key': self.apikey})
+                          response.raise_for_status()
+                          result = response.json()
+                          if not result.get("candidates"):
+                              logger.error(f"API 返回无 candidates: {result}")
+                              prompt_feedback = result.get("promptFeedback", {})
+                              if prompt_feedback:
+                                  logger.error(f"Prompt Feedback: {prompt_feedback}")
+                              raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
+  
+                          candidate = result["candidates"][0]
+                          content_parts = candidate.get("content", {}).get("parts", [])
+                          model_message_parts.extend(content_parts)
+  
+                          thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
+                          text = "".join(part["text"] for part in content_parts if "text" in part)
+  
+                          if thoughts:
+                              yield {"thoughts": thoughts, "text": text}
+                          elif text:
+                              yield text
+                          logger.info("Non-Stream API 请求完成。")
+                          break
+  
+                  except (httpx.HTTPStatusError, httpx.RequestError, json.JSONDecodeError, RuntimeError) as e:
+                      err_content = ""
+                      if isinstance(e, httpx.HTTPStatusError):
+                          try: err_content = e.response.text
+                          except: pass
+                      logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)} - {err_content}")
+                      if attempt == retries - 1:
+                          raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
+                      time.sleep(1.5 ** attempt)
+  
           if model_message_parts:
               api_contents.append({"role": "model", "parts": model_message_parts})
 
@@ -263,20 +284,21 @@ class GeminiAPI:
           temperature: Optional[float] = None,
           thinking_budget: Optional[int] = None,
           topk: Optional[int] = None,
+          response_schema_json: Optional[str] = None,
           retries: int = 2
       ) -> Generator[Union[str, Dict], None, None]:
           api_contents = []
           for msg in messages:
-                role = msg.get("role")
-                if role == "assistant": role = "model"
-                if role not in ["user", "model"]:
-                    logger.warning(f"跳过 Gemini 不支持的角色: {role}")
-                    continue
-                parts = msg.get("parts", [])
-                if not isinstance(parts, list):
-                    parts = [{"text": str(parts)}]
-                api_contents.append({"role": role, "parts": parts})
-
+                  role = msg.get("role")
+                  if role == "assistant": role = "model"
+                  if role not in ["user", "model"]:
+                      logger.warning(f"跳过 Gemini 不支持的角色: {role}")
+                      continue
+                  parts = msg.get("parts", [])
+                  if not isinstance(parts, list):
+                      parts = [{"text": str(parts)}]
+                  api_contents.append({"role": role, "parts": parts})
+  
           try:
               for part in self._chat_api(
                   api_contents,
@@ -287,6 +309,7 @@ class GeminiAPI:
                   temperature,
                   thinking_budget,
                   topk,
+                  response_schema_json,
                   retries
               ):
                   yield part
@@ -306,7 +329,6 @@ API_INSTANCE_TYPE = "GEMINI_API_INSTANCE"
 CONTENT_ITEM_TYPE = "GEMINI_CONTENT_ITEM"
 HISTORY_TYPE = "STRING"
 
-
 class GeminiApiLoaderNode:
     def __init__(self):
         self.cached_instance: Optional[GeminiAPI] = None
@@ -321,8 +343,8 @@ class GeminiApiLoaderNode:
                 "base_url": ("STRING", {"default": "https://generativelanguage.googleapis.com", "multiline": False}),
             },
             "optional": {
-                "proxy_http": ("STRING", {"default": "", "multiline": False, "placeholder": "http://127.0.0.1:7890"}),
-                "proxy_https": ("STRING", {"default": "", "multiline": False, "placeholder": "http://127.0.0.1:7890"}),
+                "proxy_http": ("STRING", {"default": "", "multiline": False, "tooltip": "http://127.0.0.1:7890"}),
+                "proxy_https": ("STRING", {"default": "", "multiline": False, "tooltip": "http://127.0.0.1:7890"}),
                 "timeout": ("FLOAT", {"default": 180.0, "min": 10.0, "max": 600.0, "step": 1.0}),
             }
         }
@@ -415,7 +437,7 @@ class GeminiFileUploaderNode:
                 "file_selector": (sorted(files) if files else ["No files in input dir"], ),
                 "use_absolute_path": ("BOOLEAN", {"default": False}),
                 "absolute_path_override": ("STRING", {"default": "/path/to/your/file.pdf", "multiline": False}),
-                "display_name": ("STRING", {"default": "", "multiline": False, "placeholder": "Optional display name"}),
+                "display_name": ("STRING", {"default": "", "multiline": False, "tooltip": "Optional display name"}),
             },
         }
     RETURN_TYPES = (CONTENT_ITEM_TYPE, "STRING",)
@@ -472,8 +494,15 @@ class GeminiChatNode:
                 "max_tokens": ("INT", {"default": 2048, "min": 1, "max": 100000, "step": 1}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.01}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "top_k": ("INT", {"default": 0, "min": 0, "max": 100, "step": 1, "description": "0 or none to disable"}),
-                "thinking_budget": ("INT", {"default": -1, "min": -1, "max": 24576, "step": 1, "description":"-1: disable, 0: no thinking, >0: budget (1.5 models only)"}),
+                "top_k": ("INT", {"default": 0, "min": 0, "max": 100, "step": 1, "tooltip": "0 or none to disable"}),
+                "thinking_budget": ("INT", {"default": -1, "min": -1, "max": 24576, "step": 1, "tooltip":"-1: disable, 0: no thinking, >0: budget (1.5 models only)"}),
+                
+                "response_schema_json": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                    "tooltip": f"在此处输入 JSON Schema 以启用结构化输出 (JSON 模式)。\n如果留空，则为普通文本模式。输入例如：\n{schema_example}"
+                }),
+
                 "retries": ("INT", {"default": 2, "min": 0, "max": 5, "step": 1}),
                 "should_change": ("BOOLEAN", {"default": True}),
             }
@@ -487,7 +516,9 @@ class GeminiChatNode:
              system_prompt: str = "", history_json_in: str = "[]",
              content_part_1: Optional[Dict] = None, content_part_2: Optional[Dict] = None, content_part_3: Optional[Dict] = None,
              max_tokens: int = 2048, temperature: float = 0.7, top_p: float = 0.95, top_k: int = 0,
-             thinking_budget: int = -1, retries: int = 1, should_change: bool = False,
+             thinking_budget: int = -1, 
+             response_schema_json: str = "", # <-- 参数已简化
+             retries: int = 1, should_change: bool = False,
              ):
         if not api_instance: raise ValueError("API 实例未连接")
         try:
@@ -504,7 +535,6 @@ class GeminiChatNode:
         for part in possible_parts:
             if not part:
                 continue
-            
             if isinstance(part, list):
                 user_parts.extend(part)
             elif isinstance(part, dict):
@@ -530,6 +560,7 @@ class GeminiChatNode:
                 topp=top_p,
                 topk=top_k if top_k > 0 else None,
                 thinking_budget= thinking_budget if thinking_budget >=0 else None,
+                response_schema_json=response_schema_json,
                 retries=retries
             )
             

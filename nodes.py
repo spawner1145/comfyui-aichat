@@ -9,6 +9,17 @@ import logging
 import io
 import time
 
+schema_example = """
+{
+  "type": "object",
+  "properties": {
+    "name": {"type": "string"},
+    "age": {"type": "integer"}
+  },
+  "required": ["name", "age"]
+}
+"""
+
 #default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
 default_system = """将danboorutag标签和图片中的特征结合(如果有)转化成自然语言，你可以将这些标签和图片(如果有)作为参考，但不要完全依赖它们，因为可能存在错误的标签。优先使用你自己的观察，并使用更合适的同义词进行描述。- 注意事项：
      - 确保场景描述的准确性。
@@ -118,6 +129,7 @@ class OpenAIAPI:
         max_output_tokens: Optional[int] = None,
         topp: Optional[float] = None,
         temperature: Optional[float] = None,
+        response_schema_json: Optional[str] = None,
         retries: int = 2
     ) -> Generator[str, None, None]:
         api_messages = []
@@ -211,8 +223,24 @@ class OpenAIAPI:
         if temperature is not None:
             request_params["temperature"] = max(0.0, min(2.0, temperature))
 
+        if response_schema_json and response_schema_json.strip():
+            try:
+                schema_dict = json.loads(response_schema_json)
+                response_format = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "comfyui_json_output",
+                        "schema": schema_dict,
+                        "strict": True
+                    }
+                }
+                request_params["response_format"] = response_format
+                logger.info("检测到 JSON Schema，已自动启用结构化输出模式。")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"输入的 JSON Schema 格式错误: {e}")
+        
         request_params = {k: v for k, v in request_params.items() if v is not None}
-
+        
         assistant_content_text = ""
         full_reasoning = []
 
@@ -282,6 +310,7 @@ class OpenAIAPI:
         system_instruction: Optional[str] = None,
         topp: Optional[float] = None,
         temperature: Optional[float] = None,
+        response_schema_json: Optional[str] = None,
         retries: int = 2
     ) -> Generator[str, None, None]:
         current_messages = list(messages)
@@ -304,6 +333,7 @@ class OpenAIAPI:
                 max_output_tokens,
                 topp, 
                 temperature,
+                response_schema_json,
                 retries
             ):
                 full_response_parts.append(part)
@@ -521,6 +551,13 @@ class OpenAIChatNode:
                 "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 32000, "step": 1}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.01}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
+                
+                "response_schema_json": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                    "tooltip": f"在此处输入 JSON Schema 以启用结构化输出 (JSON 模式)。\n如果留空，则为普通文本模式。输入例如：\n{schema_example}"
+                }),
+
                 "retries": ("INT", {"default": 2, "min": 0, "max": 5, "step": 1}),
                 "should_change": ("BOOLEAN", {"default": True}),
             }
@@ -536,7 +573,9 @@ class OpenAIChatNode:
              content_part_1: Optional[Dict] = None,
              content_part_2: Optional[Dict] = None,
              content_part_3: Optional[Dict] = None,
-             max_tokens: int = 1024, temperature: float = 0.7, top_p: float = 0.95, retries: int = 1, should_change: bool = False,
+             max_tokens: int = 1024, temperature: float = 0.7, top_p: float = 0.95, 
+             response_schema_json: str = "",
+             retries: int = 1, should_change: bool = False,
              ):
         if not api_instance:
             raise ValueError("API 实例未连接")
@@ -582,6 +621,7 @@ class OpenAIChatNode:
                 max_output_tokens=max_tokens,
                 temperature=temperature,
                 topp=top_p,
+                response_schema_json=response_schema_json,
                 retries=retries
             )
             

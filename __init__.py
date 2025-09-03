@@ -1,4 +1,4 @@
-from .nodes import OpenAIApiLoaderNode, OpenAIImageEncoderNode, OpenAIFileUploaderNode, OpenAITextBlockNode, OpenAIChatNode
+from .nodes import OpenAIApiLoaderNode, OpenAIImageEncoderNode, OpenAIFileUploaderNode, OpenAITextBlockNode, OpenAIChatNode, OpenAIContentConnector
 from .gemini_nodes import GeminiApiLoaderNode, GeminiImageEncoderNode, GeminiFileUploaderNode, GeminiTextBlockNode, GeminiChatNode
 NODE_CLASS_MAPPINGS = {
     "OpenAIApiLoader": OpenAIApiLoaderNode,
@@ -6,6 +6,8 @@ NODE_CLASS_MAPPINGS = {
     "OpenAIFileUploader": OpenAIFileUploaderNode,
     "OpenAITextBlock": OpenAITextBlockNode,
     "OpenAIChat": OpenAIChatNode,
+    "OpenAIContentConnector": OpenAIContentConnector,
+
     "GeminiApiLoader": GeminiApiLoaderNode,
     "GeminiImageEncoder": GeminiImageEncoderNode,
     "GeminiFileUploader": GeminiFileUploaderNode,
@@ -19,6 +21,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "OpenAIFileUploader": "OpenAI 文件上传器",
     "OpenAITextBlock": "OpenAI 文本块",
     "OpenAIChat": "OpenAI 聊天节点",
+    "OpenAIContentConnector": "OpenAI 内容块连接器",
+    
     "GeminiApiLoader": "Gemini API 加载器",
     "GeminiImageEncoder": "Gemini 图像编码器 (Inline)",
     "GeminiFileUploader": "Gemini 文件上传器 (File API)",

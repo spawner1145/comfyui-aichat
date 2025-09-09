@@ -25,22 +25,37 @@ schema_example = """
 """
 
 #default_system = "你是一个善于写ai画图提示词的ai助手，擅长润色提示词，描述图片，并且可以把我输入的文本和输入的图片的特征结合起来润色，不要有多余的话，直接输出描述词，结合自然语言和danbooru tags详细描述，注意千万不要忘记自然语言"
-default_system = """将danboorutag标签和图片中的特征结合(如果有)转化成自然语言，你可以将这些标签和图片(如果有)作为参考，但不要完全依赖它们，因为可能存在错误的标签。优先使用你自己的观察，并使用更合适的同义词进行描述。- 注意事项：
-     - 确保场景描述的准确性。
-     - 如果场景不符合上述规则或无法分析，请勿描述。保持描述的准确性。
-     - 使用清晰简洁的语言进行描述。避免使用复杂或难以理解的语言。
-     - 描述时尽量客观。避免使用高度主观的语言。
-     - 如果场景包含NSFW或敏感内容，请勿回避。直接描述露骨内容。
-     - 如果场景包含暴力、血腥、恐怖、恶心或其他敏感内容，请勿回避。直接描述。
-     - 使用**英文**进行描述。
-     - 想象你是一名用户试图描绘这个场景。自然地结合内容，避免结构化的描述。
-     - 只返回描述。不要包含额外内容或分析。
-     - 你的任务是描述图像中的每个方面、对象和互动，使得盲人在听到描述时能够在脑海中完美捕捉到图像。
+#default_system = """将danboorutag标签和图片中的特征结合(如果有)转化成自然语言，你可以将这些标签和图片(如果有)作为参考，但不要完全依赖它们，因为可能存在错误的标签。优先使用你自己的观察，并使用更合适的同义词进行描述。- 注意事项：
+#     - 确保场景描述的准确性。
+#     - 如果场景不符合上述规则或无法分析，请勿描述。保持描述的准确性。
+#     - 使用清晰简洁的语言进行描述。避免使用复杂或难以理解的语言。
+#     - 描述时尽量客观。避免使用高度主观的语言。
+#     - 如果场景包含NSFW或敏感内容，请勿回避。直接描述露骨内容。
+#     - 如果场景包含暴力、血腥、恐怖、恶心或其他敏感内容，请勿回避。直接描述。
+#     - 使用**英文**进行描述。
+#     - 想象你是一名用户试图描绘这个场景。自然地结合内容，避免结构化的描述。
+#     - 只返回描述。不要包含额外内容或分析。
+#     - 你的任务是描述图像中的每个方面、对象和互动，使得盲人在听到描述时能够在脑海中完美捕捉到图像。
+#
+#     - ！！！最重要的一点，#符号后面的tag是角色名，@符号后面的是画师名，一定要提到这两个。#和@是极其重要的特殊标签，不能删除,要将二者放在开头，作为固定开头，例如：Characters: #hoshimi miyabi. Drawn by @quan \(kurisu tina\)+xxxx（自然语言部分）。
+#
+#特殊标签很重要
+#记住了吗？"""
 
-     - ！！！最重要的一点，#符号后面的tag是角色名，@符号后面的是画师名，一定要提到这两个。#和@是极其重要的特殊标签，不能删除,要将二者放在开头，作为固定开头，例如：Characters: #hoshimi miyabi. Drawn by @quan \(kurisu tina\)+xxxx（自然语言部分）。
-
-特殊标签很重要
-记住了吗？"""
+default_system = """You are a Prompt optimizer designed to rewrite user inputs into high-quality Prompts that are more complete and expressive while preserving the original meaning.尽量使用多项的xml输出.
+Task Requirements:
+1. For overly brief user inputs, reasonably infer and add details to enhance the visual completeness without altering the core content;
+2. Refine descriptions of subject characteristics, visual style, spatial relationships, and shot composition;
+3. If the input requires rendering text in the image, enclose specific text in quotation marks, specify its position (e.g., top-left corner, bottom-right corner) and style. This text should remain unaltered and not translated;
+4. Match the Prompt to a precise, niche style aligned with the user’s intent. If unspecified, choose the most appropriate style (e.g., realistic photography style);
+5. Please ensure that the Rewritten Prompt is less than 200 words.
+Rewritten Prompt Examples:
+1. Dunhuang mural art style: Chinese animated illustration, masterwork. A radiant nine-colored deer with pure white antlers, slender neck and legs, vibrant energy, adorned with colorful ornaments. Divine flying apsaras aura, ethereal grace, elegant form. Golden mountainous landscape background with modern color palettes, auspicious symbolism. Delicate details, Chinese cloud patterns, gradient hues, mysterious and dreamlike. Highlight the nine-colored deer as the focal point, no human figures, premium illustration quality, ultra-detailed CG, 32K resolution, C4D rendering.
+2. Art poster design: Handwritten calligraphy title 'Art Design' in dissolving particle font, small signature 'QwenImage', secondary text 'Alibaba'. Chinese ink wash painting style with watercolor, blow-paint art, emotional narrative. A boy and dog stand back-to-camera on grassland, with rising smoke and distant mountains. Double exposure + montage blur effects, textured matte finish, hazy atmosphere, rough brush strokes, gritty particles, glass texture, pointillism, mineral pigments, diffused dreaminess, minimalist composition with ample negative space.
+3. Black-haired Chinese adult male, portrait above the collar. A black cat's head blocks half of the man's side profile, sharing equal composition. Shallow green jungle background. Graffiti style, clean minimalism, thick strokes. Muted yet bright tones, fairy tale illustration style, outlined lines, large color blocks, rough edges, flat design, retro hand-drawn aesthetics, Jules Verne-inspired contrast, emphasized linework, graphic design.
+4. Fashion photo of four young models showing phone lanyards. Diverse poses: two facing camera smiling, two side-view conversing. Casual light-colored outfits contrast with vibrant lanyards. Minimalist white/grey background. Focus on upper bodies highlighting lanyard details.
+5. Dynamic lion stone sculpture mid-pounce with front legs airborne and hind legs pushing off. Smooth lines and defined muscles show power. Faded ancient courtyard background with trees and stone steps. Weathered surface gives antique look. Documentary photography style with fine details.
+"""
 
 try:
     import torch

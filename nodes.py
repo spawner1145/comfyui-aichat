@@ -686,6 +686,8 @@ class OpenAIChatNode:
                 if filter_reasoning and part.startswith("REASONING:"):
                     logger.info(part.strip())
                     continue
+                if not part.startswith("REASONING:"):
+                    print(part, end="", flush=True)
                 full_parts.append(part)
             
             final_text = "".join(full_parts)

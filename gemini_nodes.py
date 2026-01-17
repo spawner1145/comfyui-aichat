@@ -240,8 +240,12 @@ class GeminiAPI:
             generation_config["temperature"] = max(0.0, min(2.0, temperature))
         if topk is not None and topk > 0:
                 generation_config["topK"] = topk
+        
         if thinking_budget is not None:
-                generation_config["thinkingConfig"] = {"thinkingBudget": thinking_budget}
+            generation_config["thinkingConfig"] = {
+                "thinkingBudget": thinking_budget,
+                "include_thoughts": True
+            }
 
         if response_schema_json and response_schema_json.strip():
             generation_config["responseMimeType"] = "application/json"
@@ -262,12 +266,10 @@ class GeminiAPI:
         model_message_parts = []
  
         for attempt in range(retries):
-            # ... (这部分请求逻辑保持不变) ...
             try:
                 if stream:
                     logger.info("发起 Stream API 请求...")
                     full_text = ""
-                    all_thoughts = []
                     with self.client.stream("POST", endpoint, json=body, params={'alt': 'sse', 'key': self.apikey}) as response:
                         response.raise_for_status()
                         for line in response.iter_lines():
@@ -279,18 +281,21 @@ class GeminiAPI:
                                 chunk = json.loads(data_str)
                                 for candidate in chunk.get("candidates", []):
                                     for part in candidate.get("content", {}).get("parts", []):
-                                        if "text" in part:
+                                        if part.get("thought") is True:
+                                            thought_text = part.get("text", "")
+                                            yield {"thoughts": thought_text}
+                                        elif "thoughts" in part:
+                                            yield {"thoughts": part["thoughts"]}
+                                        elif "text" in part:
                                             full_text += part["text"]
                                             yield part["text"]
-                                        if "thoughts" in part:
-                                            all_thoughts.append(part["thoughts"])
-                                            yield {"thoughts": part["thoughts"]}
+                                            
                             except json.JSONDecodeError:
                                 logger.warning(f"Stream JSON 解析失败: {data_str}")
+                                
                     if full_text:
                         model_message_parts.append({"text": full_text})
-                    if all_thoughts:
-                        model_message_parts.append({"thoughts": all_thoughts})
+                    
                     logger.info("Stream API 请求完成。")
                     break
                 else:
@@ -298,21 +303,36 @@ class GeminiAPI:
                     response = self.client.post(endpoint, json=body, params={'key': self.apikey})
                     response.raise_for_status()
                     result = response.json()
+                    
                     if not result.get("candidates"):
                         logger.error(f"API 返回无 candidates: {result}")
                         prompt_feedback = result.get("promptFeedback", {})
                         if prompt_feedback:
                             logger.error(f"Prompt Feedback: {prompt_feedback}")
                         raise RuntimeError(f"API 返回无 candidates. Prompt Feedback: {prompt_feedback}")
+                        
                     candidate = result["candidates"][0]
                     content_parts = candidate.get("content", {}).get("parts", [])
-                    model_message_parts.extend(content_parts)
-                    thoughts = [part["thoughts"] for part in content_parts if "thoughts" in part]
-                    text = "".join(part["text"] for part in content_parts if "text" in part)
-                    if thoughts:
-                        yield {"thoughts": thoughts, "text": text}
-                    elif text:
-                        yield text
+
+                    thoughts_list = []
+                    text_list = []
+                    
+                    for part in content_parts:
+                        if part.get("thought") is True:
+                            thoughts_list.append(part.get("text", ""))
+                        elif "thoughts" in part:
+                            thoughts_list.append(part["thoughts"])
+                        elif "text" in part:
+                            text_list.append(part["text"])
+
+                    if thoughts_list:
+                        yield {"thoughts": thoughts_list, "text": ""} 
+
+                    final_text_str = "".join(text_list)
+                    if final_text_str:
+                        yield final_text_str
+                        model_message_parts.append({"text": final_text_str})
+
                     logger.info("Non-Stream API 请求完成。")
                     break
             except (httpx.HTTPStatusError, httpx.RequestError, json.JSONDecodeError, RuntimeError) as e:
@@ -623,13 +643,16 @@ class GeminiChatNode:
                     thoughts = part.get("thoughts")
                     text = part.get("text", "")
                     if thoughts:
-                        thoughts_str = json.dumps(thoughts, ensure_ascii=False)
-                        logger.info(f"THOUGHTS: {thoughts_str}")
+                        t_str = "".join(thoughts) if isinstance(thoughts, list) else str(thoughts)
+                        print(f"{t_str}", end="", flush=True)
+                        
                         if not filter_thoughts:
-                            final_text_parts.append(f"\n[THOUGHTS]: {thoughts_str}\n")
+                            final_text_parts.append(f"\n[THOUGHTS]: {t_str}\n")
                     if text:
+                        print(text, end="", flush=True)
                         final_text_parts.append(text)
                 elif isinstance(part, str):
+                    print(part, end="", flush=True)
                     final_text_parts.append(part)
 
             final_text = "".join(final_text_parts)

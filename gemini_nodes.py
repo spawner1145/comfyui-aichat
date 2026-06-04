@@ -7,6 +7,7 @@ import time
 from typing import Generator, Dict, List, Optional, Union, Any
 import logging
 import io
+from .channel_config import resolve_channel_config
 
 schema_example = """
 支持三种格式:
@@ -415,6 +416,7 @@ class GeminiApiLoaderNode:
                 "api_key": ("STRING", {"default": "YOUR_GEMINI_KEY", "multiline": False}),
                 "model": ("STRING", {"default": "gemini-2.0-flash-001", "multiline": False}),
                 "base_url": ("STRING", {"default": "https://generativelanguage.googleapis.com", "multiline": False}),
+                "channel_group": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
                 "proxy_http": ("STRING", {"default": "", "multiline": False, "tooltip": "http://127.0.0.1:7890"}),
@@ -427,13 +429,20 @@ class GeminiApiLoaderNode:
     FUNCTION = "load_api"
     CATEGORY = "Gemini API"
 
-    def load_api(self, api_key: str, model: str, base_url: str, timeout: float, proxy_http: str = "", proxy_https: str = ""):
+    def load_api(self, api_key: str, model: str, base_url: str, channel_group: str, timeout: float, proxy_http: str = "", proxy_https: str = ""):
         proxies = {}
         if proxy_http: proxies["http://"] = proxy_http
         if proxy_https: proxies["https://"] = proxy_https
         if not proxies: proxies = None
+
+        resolved_api_key, resolved_base_url, _ = resolve_channel_config(
+            "gemini",
+            channel_group=channel_group,
+            api_key=api_key,
+            base_url=base_url,
+        )
         
-        config_str = f"{api_key}{model}{base_url}{proxy_http}{proxy_https}{timeout}"
+        config_str = f"{channel_group}{resolved_api_key}{model}{resolved_base_url}{proxy_http}{proxy_https}{timeout}"
         current_hash = hash(config_str)
 
         if self.cached_instance and self.cached_config_hash == current_hash:
@@ -450,7 +459,7 @@ class GeminiApiLoaderNode:
 
         logger.info("创建新的 Gemini API 实例...")
         try:
-            instance = GeminiAPI(apikey=api_key.strip(), baseurl=base_url.strip(), model=model.strip(), proxies=proxies, timeout=timeout)
+            instance = GeminiAPI(apikey=resolved_api_key.strip(), baseurl=resolved_base_url.strip(), model=model.strip(), proxies=proxies, timeout=timeout)
             self.cached_instance = instance
             self.cached_config_hash = current_hash
             return (instance,)

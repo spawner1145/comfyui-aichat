@@ -8,6 +8,7 @@ from typing import Generator, Dict, List, Optional, Union, Any
 import logging
 import io
 import time
+from .channel_config import resolve_channel_config
 
 schema_example = """
 支持三种格式:
@@ -420,6 +421,7 @@ class OpenAIApiLoaderNode:
                 "api_key": ("STRING", {"default": "sk-xxxx", "multiline": False}),
                 "model": ("STRING", {"default": "deepseek-ai/DeepSeek-R1", "multiline": False}),
                 "base_url": ("STRING", {"default": "https://api-inference.modelscope.cn/v1/", "multiline": False}),
+                "channel_group": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
                 "proxy_http": ("STRING", {"default": "", "multiline": False, "placeholder": "http://127.0.0.1:7890"}),
@@ -433,13 +435,20 @@ class OpenAIApiLoaderNode:
     FUNCTION = "load_api"
     CATEGORY = "OpenAI API"
 
-    def load_api(self, api_key: str, model: str, base_url:str, timeout: float, proxy_http: str = "", proxy_https: str = ""):
+    def load_api(self, api_key: str, model: str, base_url:str, channel_group: str, timeout: float, proxy_http: str = "", proxy_https: str = ""):
         proxies = {}
         if proxy_http: proxies["http://"] = proxy_http
         if proxy_https: proxies["https://"] = proxy_https
         if not proxies: proxies = None
 
-        config_str = f"{api_key}{model}{base_url}{proxy_http}{proxy_https}{timeout}"
+        resolved_api_key, resolved_base_url, _ = resolve_channel_config(
+            "openai",
+            channel_group=channel_group,
+            api_key=api_key,
+            base_url=base_url,
+        )
+
+        config_str = f"{channel_group}{resolved_api_key}{model}{resolved_base_url}{proxy_http}{proxy_https}{timeout}"
         current_hash = hash(config_str)
 
         if self.cached_instance and self.cached_config_hash == current_hash:
@@ -457,8 +466,8 @@ class OpenAIApiLoaderNode:
         logger.info("创建新的 OpenAI API 实例...")
         try:
             instance = OpenAIAPI(
-                apikey=api_key.strip(),
-                baseurl=base_url.strip(),
+                apikey=resolved_api_key.strip(),
+                baseurl=resolved_base_url.strip(),
                 model=model.strip(),
                 proxies=proxies,
                 timeout=timeout,

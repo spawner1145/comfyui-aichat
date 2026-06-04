@@ -1,0 +1,4 @@
+channels:
+  default:
+    base_url: "https://api.openai.com/v1/"
+    api_key: "sk-xxxx"

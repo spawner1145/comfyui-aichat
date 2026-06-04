@@ -1,9 +1,9 @@
 [project]
 name = "aichat"
 description = ""
-version = "1.0.7"
+version = "1.0.8"
 license = {file = "LICENSE"}
-dependencies = ["httpx<0.28.0", "openai"]
+dependencies = ["httpx<0.28.0", "openai", "PyYAML"]
 
 [project.urls]
 Repository = "https://github.com/spawner1145/comfyui-aichat"

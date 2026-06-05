@@ -416,12 +416,12 @@ class GeminiApiLoaderNode:
                 "api_key": ("STRING", {"default": "YOUR_GEMINI_KEY", "multiline": False}),
                 "model": ("STRING", {"default": "gemini-2.0-flash-001", "multiline": False}),
                 "base_url": ("STRING", {"default": "https://generativelanguage.googleapis.com", "multiline": False}),
-                "channel_group": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
                 "proxy_http": ("STRING", {"default": "", "multiline": False, "tooltip": "http://127.0.0.1:7890"}),
                 "proxy_https": ("STRING", {"default": "", "multiline": False, "tooltip": "http://127.0.0.1:7890"}),
                 "timeout": ("FLOAT", {"default": 180.0, "min": 10.0, "max": 600.0, "step": 1.0}),
+                "channel_group": ("STRING", {"default": "", "multiline": False}),
             }
         }
     RETURN_TYPES = (API_INSTANCE_TYPE,)

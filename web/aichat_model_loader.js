@@ -509,14 +509,6 @@ if (!window.__aichatModelLoaderRegistered) {
 
                 const btn = this.addWidget("button", "配置渠道组 / 获取模型", "", () => openConfigPanel(this, provider));
                 btn.serialize = false;
-
-                const widgets = this.widgets;
-                const fromIdx = widgets.indexOf(btn);
-                const modelIdx = widgets.findIndex((x) => x.name === "model");
-                if (fromIdx > -1 && modelIdx > -1) {
-                    widgets.splice(fromIdx, 1);
-                    widgets.splice(modelIdx + 1, 0, btn);
-                }
                 this.setDirtyCanvas(true, true);
                 return r;
             };

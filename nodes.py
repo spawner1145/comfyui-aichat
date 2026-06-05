@@ -421,12 +421,12 @@ class OpenAIApiLoaderNode:
                 "api_key": ("STRING", {"default": "sk-xxxx", "multiline": False}),
                 "model": ("STRING", {"default": "deepseek-ai/DeepSeek-R1", "multiline": False}),
                 "base_url": ("STRING", {"default": "https://api-inference.modelscope.cn/v1/", "multiline": False}),
-                "channel_group": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
                 "proxy_http": ("STRING", {"default": "", "multiline": False, "placeholder": "http://127.0.0.1:7890"}),
                 "proxy_https": ("STRING", {"default": "", "multiline": False, "placeholder": "http://127.0.0.1:7890"}),
                 "timeout": ("FLOAT", {"default": 120.0, "min": 10.0, "max": 600.0, "step": 1.0}),
+                "channel_group": ("STRING", {"default": "", "multiline": False}),
             }
         }
 

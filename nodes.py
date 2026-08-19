@@ -84,19 +84,21 @@ class OpenAIAPI:
         model: str = "deepseek-ai/DeepSeek-R1",
         proxies: Optional[Dict[str, str]] = None,
         timeout: float = 120.0,
+        use_responses: bool = False,
     ):
         if not apikey:
             raise ValueError("API Key 不能为空")
         self.apikey = apikey
         self.baseurl = baseurl if baseurl.endswith('/') else baseurl + '/'
         self.model = model
+        self.use_responses = use_responses
         http_client = httpx.Client(proxies=proxies, timeout=timeout) if proxies else httpx.Client(timeout=timeout)
         self.client = OpenAI(
             api_key=apikey,
             base_url=self.baseurl,
             http_client=http_client
         )
-        logger.info(f"OpenAIAPI Client Initialized: model={self.model}, base_url={self.baseurl}")
+        logger.info(f"OpenAIAPI Client Initialized: model={self.model}, base_url={self.baseurl}, use_responses={self.use_responses}")
 
     def _build_schema_from_string(self, schema_str: str) -> Dict[str, Any]:
         stripped_str = schema_str.strip()
@@ -180,6 +182,196 @@ class OpenAIAPI:
             logger.error(f"文件 {file_path} 上传失败: {type(e).__name__} - {str(e)}")
             raise RuntimeError(f"文件 {file_path} 上传失败: {type(e).__name__} - {str(e)}") from e
 
+    def _build_responses_input(self, messages: List[Dict]):
+        """将 Chat Completions 风格的 messages 转换为 Responses API 的 input items。"""
+        instructions = None
+        input_items = []
+
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+
+            if role == "system":
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    text = " ".join([p.get("text", "") for p in content if isinstance(p, dict) and p.get("type") == "text"])
+                else:
+                    text = str(content)
+                if instructions is None:
+                    instructions = text or " "
+                else:
+                    instructions += "\n" + (text or " ")
+                continue
+
+            if role == "tool":
+                call_id = msg.get("tool_call_id") or f"call_{uuid.uuid4()}"
+                output = content if isinstance(content, str) else json.dumps(content, ensure_ascii=False)
+                input_items.append({
+                    "type": "function_call_output",
+                    "call_id": call_id,
+                    "output": output,
+                })
+                continue
+
+            content_parts = []
+            if isinstance(content, str):
+                content_parts = [{"type": "input_text", "text": content}]
+            elif isinstance(content, list):
+                for part in content:
+                    if not isinstance(part, dict):
+                        continue
+                    if part.get("type") == "text" and "text" in part:
+                        content_parts.append({"type": "input_text", "text": part["text"]})
+                    elif "input_file" in part and "file_id" in part["input_file"]:
+                        content_parts.append({"type": "input_file", "file_id": part["input_file"]["file_id"]})
+                    elif "input_image" in part and "image_url" in part["input_image"]:
+                        content_parts.append({
+                            "type": "input_image",
+                            "image_url": part["input_image"]["image_url"],
+                            "detail": part["input_image"].get("detail", "auto"),
+                        })
+                    elif part.get("type") == "image_url" and "image_url" in part:
+                        content_parts.append({
+                            "type": "input_image",
+                            "image_url": part["image_url"].get("url"),
+                            "detail": part["image_url"].get("detail", "auto"),
+                        })
+                    elif part.get("type") in ("input_text", "input_image", "input_file"):
+                        content_parts.append(part)
+                    else:
+                        logger.warning(f"跳过无法识别的消息内容块: {part}")
+            else:
+                content_parts = [{"type": "input_text", "text": str(content)}]
+
+            if role == "assistant":
+                msg_item = {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": content_parts or [{"type": "input_text", "text": " "}],
+                }
+                input_items.append(msg_item)
+                if "tool_calls" in msg:
+                    for tc in msg["tool_calls"]:
+                        input_items.append({
+                            "type": "function_call",
+                            "call_id": tc.get("id") or f"call_{uuid.uuid4()}",
+                            "name": tc.get("function", {}).get("name", ""),
+                            "arguments": tc.get("function", {}).get("arguments", "{}"),
+                        })
+                continue
+
+            if role in ("user", "developer"):
+                input_items.append({
+                    "type": "message",
+                    "role": role,
+                    "content": content_parts or [{"type": "input_text", "text": " "}],
+                })
+                continue
+
+            logger.warning(f"跳过无效角色消息: {role}")
+
+        logger.debug(f"发送给 API 的 Responses Input: {json.dumps(input_items, ensure_ascii=False, indent=2)}")
+        return instructions, input_items
+
+    def _chat_api_responses(
+        self,
+        messages: List[Dict],
+        stream: bool,
+        max_output_tokens: Optional[int] = None,
+        topp: Optional[float] = None,
+        temperature: Optional[float] = None,
+        response_schema_json: Optional[str] = None,
+        retries: int = 2
+    ) -> Generator[str, None, None]:
+        """Responses API 分支实现（使用 self.client.responses.create）。"""
+        instructions, input_items = self._build_responses_input(messages)
+
+        request_params = {
+            "model": self.model,
+            "input": input_items,
+            "stream": stream,
+            "store": False,
+        }
+        if instructions:
+            request_params["instructions"] = instructions
+        if max_output_tokens is not None and max_output_tokens > 0:
+            request_params["max_output_tokens"] = max_output_tokens
+        if topp is not None:
+            request_params["top_p"] = max(0.0, min(1.0, topp))
+        if temperature is not None:
+            request_params["temperature"] = max(0.0, min(2.0, temperature))
+
+        if response_schema_json and response_schema_json.strip():
+            try:
+                schema_dict = self._build_schema_from_string(response_schema_json)
+                request_params["text"] = {
+                    "format": {
+                        "type": "json_schema",
+                        "name": "comfyui_json_output",
+                        "schema": schema_dict,
+                        "strict": True,
+                    }
+                }
+                logger.info("已成功构建并应用 JSON Schema (Responses text.format)。")
+            except ValueError as e:
+                raise e
+
+        request_params = {k: v for k, v in request_params.items() if v is not None}
+
+        assistant_content_text = ""
+        full_reasoning = []
+
+        for attempt in range(retries):
+            try:
+                if stream:
+                    logger.info("发起 Responses Stream API 请求...")
+                    stream_resp = self.client.responses.create(**request_params)
+                    for event in stream_resp:
+                        if event.type == "response.output_text.delta":
+                            assistant_content_text += event.delta
+                            yield event.delta
+                        elif event.type in ("response.reasoning_text.delta", "response.reasoning_summary_text.delta"):
+                            full_reasoning.append(event.delta)
+                            yield f"REASONING: {event.delta}\n"
+                    if assistant_content_text or full_reasoning:
+                        messages.append({
+                            "role": "assistant",
+                            "content": [{"type": "text", "text": assistant_content_text}],
+                        })
+                    logger.info("Responses Stream API 请求完成。")
+                    return
+
+                else:
+                    logger.info(f"发起 Responses Non-Stream API 请求 (尝试 {attempt+1}/{retries})...")
+                    response = self.client.responses.create(**request_params)
+
+                    for item in response.output:
+                        if item.type == "reasoning":
+                            for part in item.content or []:
+                                if part.type == "reasoning_text":
+                                    full_reasoning.append(part.text)
+                            for summary in item.summary or []:
+                                full_reasoning.append(summary.text)
+
+                    content_to_yield = response.output_text or ""
+                    assistant_content_text = content_to_yield
+
+                    for reasoning in full_reasoning:
+                        yield f"REASONING: {reasoning}\n"
+
+                    assistant_message = {"role": "assistant", "content": content_to_yield}
+                    messages.append(assistant_message)
+                    logger.info("Responses Non-Stream API 请求完成。")
+                    yield content_to_yield
+                    return
+
+            except Exception as e:
+                logger.error(f"API 调用失败 (尝试 {attempt+1}/{retries}): {type(e).__name__} - {str(e)}")
+                if attempt == retries - 1:
+                    raise RuntimeError(f"API 调用在 {retries} 次重试后失败: {type(e).__name__} - {str(e)}") from e
+                time.sleep(1.5 ** attempt)
+
     def _chat_api(
         self,
         messages: List[Dict],
@@ -190,6 +382,12 @@ class OpenAIAPI:
         response_schema_json: Optional[str] = None,
         retries: int = 2
     ) -> Generator[str, None, None]:
+        if self.use_responses:
+            yield from self._chat_api_responses(
+                messages, stream, max_output_tokens, topp, temperature, response_schema_json, retries
+            )
+            return
+
         api_messages = []
         for msg in messages:
             role = msg.get("role")
@@ -427,6 +625,7 @@ class OpenAIApiLoaderNode:
                 "proxy_https": ("STRING", {"default": "", "multiline": False, "placeholder": "http://127.0.0.1:7890"}),
                 "timeout": ("FLOAT", {"default": 120.0, "min": 10.0, "max": 600.0, "step": 1.0}),
                 "channel_group": ("STRING", {"default": "", "multiline": False}),
+                "use_responses": ("BOOLEAN", {"default": False, "label_on": "Responses API", "label_off": "Chat Completions"}),
             }
         }
 
@@ -435,7 +634,7 @@ class OpenAIApiLoaderNode:
     FUNCTION = "load_api"
     CATEGORY = "OpenAI API"
 
-    def load_api(self, api_key: str, model: str, base_url:str, channel_group: str, timeout: float, proxy_http: str = "", proxy_https: str = ""):
+    def load_api(self, api_key: str, model: str, base_url:str, channel_group: str, timeout: float, use_responses: bool = False, proxy_http: str = "", proxy_https: str = ""):
         proxies = {}
         if proxy_http: proxies["http://"] = proxy_http
         if proxy_https: proxies["https://"] = proxy_https
@@ -448,7 +647,7 @@ class OpenAIApiLoaderNode:
             base_url=base_url,
         )
 
-        config_str = f"{channel_group}{resolved_api_key}{model}{resolved_base_url}{proxy_http}{proxy_https}{timeout}"
+        config_str = f"{channel_group}{resolved_api_key}{model}{resolved_base_url}{proxy_http}{proxy_https}{timeout}{use_responses}"
         current_hash = hash(config_str)
 
         if self.cached_instance and self.cached_config_hash == current_hash:
@@ -471,6 +670,7 @@ class OpenAIApiLoaderNode:
                 model=model.strip(),
                 proxies=proxies,
                 timeout=timeout,
+                use_responses=use_responses,
             )
             self.cached_instance = instance
             self.cached_config_hash = current_hash

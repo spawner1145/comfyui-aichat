@@ -634,6 +634,7 @@ class GeminiChatNode:
             logger.info(f"开始 Gemini 聊天请求 (Stream={stream})...")
             
             final_text_parts = []
+            in_think = False
             chat_generator = api_instance.chat(
                 messages=messages,
                 stream=stream,
@@ -653,16 +654,37 @@ class GeminiChatNode:
                     text = part.get("text", "")
                     if thoughts:
                         t_str = "".join(thoughts) if isinstance(thoughts, list) else str(thoughts)
-                        print(f"{t_str}", end="", flush=True)
-                        
+                        if not t_str:
+                            continue
+                        if not in_think:
+                            print("<think>", end="", flush=True)
+                            in_think = True
+                            if not filter_thoughts:
+                                final_text_parts.append("<think>")
+                        print(t_str, end="", flush=True)
                         if not filter_thoughts:
-                            final_text_parts.append(f"\n[THOUGHTS]: {t_str}\n")
+                            final_text_parts.append(t_str)
                     if text:
+                        if in_think:
+                            print("</think>", end="", flush=True)
+                            in_think = False
+                            if not filter_thoughts:
+                                final_text_parts.append("</think>")
                         print(text, end="", flush=True)
                         final_text_parts.append(text)
                 elif isinstance(part, str):
+                    if in_think:
+                        print("</think>", end="", flush=True)
+                        in_think = False
+                        if not filter_thoughts:
+                            final_text_parts.append("</think>")
                     print(part, end="", flush=True)
                     final_text_parts.append(part)
+
+            if in_think:
+                print("</think>", end="", flush=True)
+                if not filter_thoughts:
+                    final_text_parts.append("</think>")
 
             final_text = "".join(final_text_parts)
             logger.info("Gemini 聊天请求结束。")

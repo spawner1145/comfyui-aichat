@@ -327,13 +327,38 @@ class OpenAIAPI:
                 if stream:
                     logger.info("发起 Responses Stream API 请求...")
                     stream_resp = self.client.responses.create(**request_params)
+                    reasoning_acc = ""
                     for event in stream_resp:
                         if event.type == "response.output_text.delta":
                             assistant_content_text += event.delta
                             yield event.delta
                         elif event.type in ("response.reasoning_text.delta", "response.reasoning_summary_text.delta"):
+                            reasoning_acc += event.delta
                             full_reasoning.append(event.delta)
                             yield f"REASONING: {event.delta}\n"
+                        elif event.type in ("response.reasoning_text.done", "response.reasoning_summary_text.done"):
+                            done_text = getattr(event, "text", "") or ""
+                            if done_text and not reasoning_acc.endswith(done_text):
+                                missing = done_text[len(reasoning_acc):] if done_text.startswith(reasoning_acc) else done_text
+                                if missing:
+                                    reasoning_acc += missing
+                                    full_reasoning.append(missing)
+                                    yield f"REASONING: {missing}\n"
+                        elif event.type == "response.output_item.done":
+                            item = event.item
+                            if getattr(item, "type", None) == "reasoning":
+                                item_text = ""
+                                for s in getattr(item, "summary", None) or []:
+                                    item_text += getattr(s, "text", "") or ""
+                                for c in getattr(item, "content", None) or []:
+                                    item_text += getattr(c, "text", "") or ""
+                                if item_text and not reasoning_acc.endswith(item_text):
+                                    missing = item_text[len(reasoning_acc):] if item_text.startswith(reasoning_acc) else item_text
+                                    if missing:
+                                        reasoning_acc += missing
+                                        full_reasoning.append(missing)
+                                        yield f"REASONING: {missing}\n"
+                                reasoning_acc = ""
                     if assistant_content_text or full_reasoning:
                         messages.append({
                             "role": "assistant",
@@ -878,6 +903,7 @@ class OpenAIChatNode:
 
         full_parts = []
         final_text = ""
+        in_think = False
         try:
             logger.info(f"开始聊天请求 (Stream={stream})...")
             chat_generator = api_instance.chat(
@@ -890,15 +916,36 @@ class OpenAIChatNode:
                 response_schema_json=response_schema_json,
                 retries=retries
             )
-            
+
             for part in chat_generator:
-                if filter_reasoning and part.startswith("REASONING:"):
-                    logger.info(part.strip())
+                if part.startswith("REASONING:"):
+                    reason = part[len("REASONING: "):] if part.startswith("REASONING: ") else part[len("REASONING:"):]
+                    if reason.endswith("\n"):
+                        reason = reason[:-1]
+                    if not reason:
+                        continue
+                    if not in_think:
+                        print("<think>", end="", flush=True)
+                        in_think = True
+                        if not filter_reasoning:
+                            full_parts.append("<think>")
+                    print(reason, end="", flush=True)
+                    if not filter_reasoning:
+                        full_parts.append(reason)
                     continue
-                if not part.startswith("REASONING:"):
-                    print(part, end="", flush=True)
+                if in_think:
+                    print("</think>", end="", flush=True)
+                    in_think = False
+                    if not filter_reasoning:
+                        full_parts.append("</think>")
+                print(part, end="", flush=True)
                 full_parts.append(part)
-            
+
+            if in_think:
+                print("</think>", end="", flush=True)
+                if not filter_reasoning:
+                    full_parts.append("</think>")
+
             final_text = "".join(full_parts)
             logger.info("聊天请求结束。")
 

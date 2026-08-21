@@ -25,7 +25,7 @@ if (!window.__aichatModelLoaderRegistered) {
         style.id = "aichat-model-loader-styles";
         style.textContent = `
 .aichat-panel { position: fixed; z-index: 10000; width: 540px; max-width: 94vw; max-height: 84vh; overflow: auto; background: var(--comfy-menu-bg, #202020); color: var(--fg-color, #e0e0e0); border: 1px solid var(--border-color, #444); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 13px; }
-.aichat-panel__header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background: rgba(255,255,255,0.04); border-bottom:1px solid var(--border-color, #444); }
+.aichat-panel__header { position: sticky; top: 0; z-index: 2; display:flex; align-items:center; justify-content:space-between; min-height: 39px; box-sizing: border-box; padding:10px 14px; background: var(--comfy-menu-bg, #202020); border-bottom:1px solid var(--border-color, #444); }
 .aichat-panel__body { padding: 14px; }
 .aichat-panel__title { font-weight: 600; font-size: 14px; }
 .aichat-close { background: transparent; color: inherit; border: none; font-size: 18px; cursor: pointer; }
@@ -49,6 +49,13 @@ if (!window.__aichatModelLoaderRegistered) {
 .aichat-collapse__header:hover { background: rgba(255,255,255,0.08); }
 .aichat-collapse__arrow { width: 12px; opacity: 0.8; }
 .aichat-collapse__title { font-weight: 600; }
+.aichat-collapse--editor .aichat-collapse__header { position: sticky; top: 39px; z-index: 1; flex-wrap: wrap; background: var(--comfy-menu-bg, #202020); }
+.aichat-collapse__actions { display: flex; gap: 8px; margin-left: auto; }
+.aichat-collapse__actions .aichat-btn { padding: 5px 9px; }
+.aichat-quick-add { margin-top: 8px; border-color: #2f6fdb; }
+.aichat-quick-add__title { font-weight: 600; margin-bottom: 8px; }
+.aichat-quick-add__actions { display: flex; gap: 8px; }
+.aichat-quick-add__actions > * { flex: 1 1 0; }
 .aichat-collapse__body { margin-top: 8px; }
 .aichat-group-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .aichat-group-item { padding: 10px; border: 1px solid var(--border-color, #444); border-radius: 8px; background: rgba(255,255,255,0.03); }
@@ -212,6 +219,8 @@ if (!window.__aichatModelLoaderRegistered) {
         status.textContent = "支持直接填写 base_url/api_key，也支持选择渠道组。选择渠道组后，运行时优先使用渠道组。";
 
         const groupField = makeField("渠道组", "select");
+        const groupPickerFilterField = makeField("筛选渠道组");
+        groupPickerFilterField.input.placeholder = "输入渠道组名称筛选";
         const directBaseField = makeField("直接 Base URL");
         const directKeyField = makeField("直接 API Key", "password");
         const modelField = makeField("模型");
@@ -232,6 +241,7 @@ if (!window.__aichatModelLoaderRegistered) {
         proxyHttpsField.input.oninput = () => setWidgetValue(node, "proxy_https", proxyHttpsField.input.value);
 
         body.appendChild(groupField.field);
+        body.appendChild(groupPickerFilterField.field);
         body.appendChild(directBaseField.field);
         body.appendChild(directKeyField.field);
         body.appendChild(modelField.field);
@@ -280,39 +290,106 @@ if (!window.__aichatModelLoaderRegistered) {
         groupSection.className = "aichat-section";
         body.appendChild(groupSection);
 
-        const editorTitle = document.createElement("div");
-        editorTitle.style.fontWeight = "600";
-        editorTitle.textContent = "编辑渠道组";
-        groupSection.appendChild(editorTitle);
+        const groupCollapse = document.createElement("div");
+        groupCollapse.className = "aichat-collapse aichat-collapse--editor";
+        const groupCollapseHeader = document.createElement("div");
+        groupCollapseHeader.className = "aichat-collapse__header";
+        const groupCollapseArrow = document.createElement("span");
+        groupCollapseArrow.className = "aichat-collapse__arrow";
+        const groupCollapseTitle = document.createElement("span");
+        groupCollapseTitle.className = "aichat-collapse__title";
+        const groupActions = document.createElement("div");
+        groupActions.className = "aichat-collapse__actions";
+        groupActions.onclick = (event) => event.stopPropagation();
 
-        const groupList = document.createElement("div");
-        groupList.className = "aichat-group-list";
-        groupSection.appendChild(groupList);
-
-        const manageRow = document.createElement("div");
-        manageRow.className = "aichat-row";
-        manageRow.style.marginTop = "10px";
         const addGroupBtn = document.createElement("button");
         addGroupBtn.className = "aichat-btn";
         addGroupBtn.textContent = "新增渠道组";
         const saveGroupBtn = document.createElement("button");
         saveGroupBtn.className = "aichat-btn aichat-btn--primary";
         saveGroupBtn.textContent = "保存到 YAML";
-        manageRow.appendChild(addGroupBtn);
-        manageRow.appendChild(saveGroupBtn);
-        groupSection.appendChild(manageRow);
+        groupActions.appendChild(addGroupBtn);
+        groupActions.appendChild(saveGroupBtn);
+        groupCollapseHeader.appendChild(groupCollapseArrow);
+        groupCollapseHeader.appendChild(groupCollapseTitle);
+        groupCollapseHeader.appendChild(groupActions);
+        groupCollapse.appendChild(groupCollapseHeader);
+
+        const quickAddEditor = document.createElement("div");
+        quickAddEditor.className = "aichat-group-item aichat-quick-add";
+        quickAddEditor.style.display = "none";
+        const quickAddTitle = document.createElement("div");
+        quickAddTitle.className = "aichat-quick-add__title";
+        quickAddTitle.textContent = "快速新增渠道组";
+        quickAddEditor.appendChild(quickAddTitle);
+
+        const quickNameField = makeField("名称");
+        const quickBaseField = makeField("Base URL");
+        const quickKeyField = makeField("API Key", "password");
+        addPasswordToggle(quickKeyField);
+        quickAddEditor.appendChild(quickNameField.field);
+        quickAddEditor.appendChild(quickBaseField.field);
+        quickAddEditor.appendChild(quickKeyField.field);
+
+        const quickAddActions = document.createElement("div");
+        quickAddActions.className = "aichat-quick-add__actions";
+        const quickConfirmBtn = document.createElement("button");
+        quickConfirmBtn.className = "aichat-btn aichat-btn--primary";
+        quickConfirmBtn.textContent = "确认新增";
+        const quickCancelBtn = document.createElement("button");
+        quickCancelBtn.className = "aichat-btn";
+        quickCancelBtn.textContent = "取消";
+        quickAddActions.appendChild(quickConfirmBtn);
+        quickAddActions.appendChild(quickCancelBtn);
+        quickAddEditor.appendChild(quickAddActions);
+        groupCollapse.appendChild(quickAddEditor);
+
+        const groupCollapseBody = document.createElement("div");
+        groupCollapseBody.className = "aichat-collapse__body";
+        groupCollapse.appendChild(groupCollapseBody);
+
+        const groupFilterField = makeField("筛选渠道组");
+        groupFilterField.input.placeholder = "输入名称或 Base URL 筛选渠道组";
+        groupCollapseBody.appendChild(groupFilterField.field);
+
+        const groupList = document.createElement("div");
+        groupList.className = "aichat-group-list";
+        groupCollapseBody.appendChild(groupList);
+        groupSection.appendChild(groupCollapse);
 
         let groups = [];
+
+        function hideQuickAddEditor() {
+            quickAddEditor.style.display = "none";
+        }
+
+        function showQuickAddEditor() {
+            quickNameField.input.value = "";
+            quickBaseField.input.value = "";
+            quickKeyField.input.value = "";
+            quickAddEditor.style.display = "";
+            quickNameField.input.focus();
+        }
 
         function updateModelCollapseTitle() {
             const count = Array.isArray(node._aichatModels) ? node._aichatModels.length : 0;
             modelCollapseTitle.textContent = `模型列表 (${count})`;
         }
 
+        function updateGroupCollapseTitle() {
+            groupCollapseTitle.textContent = `编辑渠道组 (${groups.length})`;
+        }
+
         function applyModelCollapseState() {
             const collapsed = !!node._aichatModelListCollapsed;
             modelCollapseArrow.textContent = collapsed ? "▶" : "▼";
             modelCollapseBody.style.display = collapsed ? "none" : "";
+        }
+
+        function applyGroupCollapseState() {
+            const collapsed = !!node._aichatGroupEditorCollapsed;
+            groupCollapseArrow.textContent = collapsed ? "▶" : "▼";
+            groupCollapseBody.style.display = collapsed ? "none" : "";
         }
 
         function refreshModelList() {
@@ -332,6 +409,14 @@ if (!window.__aichatModelLoaderRegistered) {
 
         function syncGroupSelect() {
             const selected = getWidgetValue(node, "channel_group");
+            const keyword = (groupPickerFilterField.input.value || "").trim().toLowerCase();
+            const selectedGroup = groups.find((group) => group.name === selected);
+            const visibleGroups = keyword
+                ? groups.filter(
+                      (group) =>
+                          group === selectedGroup || String(group.name || "").toLowerCase().includes(keyword)
+                  )
+                : groups;
             groupField.input.innerHTML = "";
 
             const empty = document.createElement("option");
@@ -339,18 +424,36 @@ if (!window.__aichatModelLoaderRegistered) {
             empty.textContent = "不使用渠道组，直接走下方 base_url/api_key";
             groupField.input.appendChild(empty);
 
-            for (const group of groups) {
+            for (const group of visibleGroups) {
                 const option = document.createElement("option");
                 option.value = group.name;
                 option.textContent = group.name;
                 groupField.input.appendChild(option);
             }
-            groupField.input.value = groups.some((g) => g.name === selected) ? selected : "";
+            groupField.input.value = visibleGroups.some((g) => g.name === selected) ? selected : "";
         }
 
         function renderGroupEditors() {
             groupList.innerHTML = "";
-            for (const group of groups) {
+            updateGroupCollapseTitle();
+            const keyword = (groupFilterField.input.value || "").trim().toLowerCase();
+            const filteredGroups = keyword
+                ? groups.filter((group) =>
+                      [group.name, group.base_url].some((value) =>
+                          String(value || "").toLowerCase().includes(keyword)
+                      )
+                  )
+                : groups;
+
+            if (!filteredGroups.length) {
+                const empty = document.createElement("div");
+                empty.className = "aichat-empty";
+                empty.textContent = groups.length ? "没有匹配的渠道组" : "暂无渠道组，请先新增或刷新";
+                groupList.appendChild(empty);
+                return;
+            }
+
+            for (const group of filteredGroups) {
                 const item = document.createElement("div");
                 item.className = "aichat-group-item";
 
@@ -424,15 +527,51 @@ if (!window.__aichatModelLoaderRegistered) {
             applyModelCollapseState();
         };
 
+        groupCollapseHeader.onclick = () => {
+            node._aichatGroupEditorCollapsed = !node._aichatGroupEditorCollapsed;
+            applyGroupCollapseState();
+        };
+
         modelFilterField.input.oninput = refreshModelList;
+        groupPickerFilterField.input.oninput = syncGroupSelect;
+        groupFilterField.input.oninput = renderGroupEditors;
 
         addGroupBtn.onclick = () => {
-            groups.push({ name: "", base_url: "", api_key: "" });
-            renderGroupEditors();
+            showQuickAddEditor();
+        };
+
+        quickCancelBtn.onclick = hideQuickAddEditor;
+
+        quickConfirmBtn.onclick = () => {
+            const group = {
+                name: quickNameField.input.value.trim(),
+                base_url: quickBaseField.input.value.trim(),
+                api_key: quickKeyField.input.value.trim(),
+            };
+            if (!group.name || !group.base_url || !group.api_key) {
+                status.className = "aichat-status aichat-status--err";
+                status.textContent = "请填写名称、Base URL 和 API Key";
+                return;
+            }
+            if (groups.some((item) => (item.name || "").trim() === group.name)) {
+                status.className = "aichat-status aichat-status--err";
+                status.textContent = `存在重复渠道组名称: ${group.name}`;
+                return;
+            }
+            groups.push(group);
+            hideQuickAddEditor();
             syncGroupSelect();
+            renderGroupEditors();
+            status.className = "aichat-status aichat-status--ok";
+            status.textContent = "渠道组已新增，请点击保存到 YAML";
         };
 
         saveGroupBtn.onclick = async () => {
+            if (quickAddEditor.style.display !== "none") {
+                status.className = "aichat-status aichat-status--err";
+                status.textContent = "请先确认或取消快速新增的渠道组";
+                return;
+            }
             const cleaned = groups
                 .map((g) => ({
                     name: (g.name || "").trim(),
@@ -487,6 +626,8 @@ if (!window.__aichatModelLoaderRegistered) {
 
         applyModelCollapseState();
         refreshModelList();
+        applyGroupCollapseState();
+        renderGroupEditors();
 
         document.body.appendChild(panel);
         const rect = panel.getBoundingClientRect();

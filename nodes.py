@@ -839,7 +839,7 @@ class OpenAIChatNode:
                 "content_part_1": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
                 "content_part_2": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
                 "content_part_3": (CONTENT_ITEM_TYPE, {"dynamicPort": True}),
-                "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 32000, "step": 1}),
+                "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 10240000, "step": 1}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.01}),
                 "top_p": ("FLOAT", {"default": 0.95, "min": 0.0, "max": 1.0, "step": 0.01}),
                 

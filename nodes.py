@@ -74,7 +74,24 @@ except ImportError:
 
 logger = logging.getLogger('OpenAI_ComfyUI')
 logger.setLevel(logging.INFO)
-from openai import OpenAI, APIResponseValidationError
+from openai import OpenAI, APIResponseValidationError, omit
+
+_SDK_HEADER_NAMES = (
+    "x-stainless-lang",
+    "x-stainless-package-version",
+    "x-stainless-os",
+    "x-stainless-arch",
+    "x-stainless-runtime",
+    "x-stainless-runtime-version",
+    "x-stainless-async",
+    "x-stainless-retry-count",
+    "x-stainless-read-timeout",
+)
+
+
+def _strip_openai_sdk_headers(request: httpx.Request) -> None:
+    for name in _SDK_HEADER_NAMES:
+        request.headers.pop(name, None)
 
 class OpenAIAPI:
     def __init__(
@@ -92,11 +109,28 @@ class OpenAIAPI:
         self.baseurl = baseurl if baseurl.endswith('/') else baseurl + '/'
         self.model = model
         self.use_responses = use_responses
-        http_client = httpx.Client(proxies=proxies, timeout=timeout) if proxies else httpx.Client(timeout=timeout)
+        http_kwargs = {
+            "timeout": timeout,
+            "event_hooks": {"request": [_strip_openai_sdk_headers]},
+        }
+        if proxies:
+            http_kwargs["proxies"] = proxies
         self.client = OpenAI(
             api_key=apikey,
             base_url=self.baseurl,
-            http_client=http_client
+            http_client=httpx.Client(**http_kwargs),
+            default_headers={
+                "User-Agent": "python-httpx",
+                "X-Stainless-Lang": omit,
+                "X-Stainless-Package-Version": omit,
+                "X-Stainless-OS": omit,
+                "X-Stainless-Arch": omit,
+                "X-Stainless-Runtime": omit,
+                "X-Stainless-Runtime-Version": omit,
+                "X-Stainless-Async": omit,
+                "X-Stainless-Retry-Count": omit,
+                "X-Stainless-Read-Timeout": omit,
+            },
         )
         logger.info(f"OpenAIAPI Client Initialized: model={self.model}, base_url={self.baseurl}, use_responses={self.use_responses}")
 

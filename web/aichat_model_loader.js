@@ -141,22 +141,6 @@ if (!window.__aichatModelLoaderRegistered) {
         return { field, input, row };
     }
 
-    function addPasswordToggle(fieldObj) {
-        if (!fieldObj?.input || fieldObj.input.tagName !== "INPUT" || fieldObj.input.type !== "password") {
-            return;
-        }
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "aichat-btn";
-        btn.textContent = "显示";
-        btn.onclick = () => {
-            const isPassword = fieldObj.input.type === "password";
-            fieldObj.input.type = isPassword ? "text" : "password";
-            btn.textContent = isPassword ? "隐藏" : "显示";
-        };
-        fieldObj.row.appendChild(btn);
-    }
-
     function renderModels(container, models, onPick, filterText = "") {
         container.innerHTML = "";
         const list = Array.isArray(models) ? models : [];
@@ -222,11 +206,10 @@ if (!window.__aichatModelLoaderRegistered) {
         const groupPickerFilterField = makeField("筛选渠道组");
         groupPickerFilterField.input.placeholder = "输入渠道组名称筛选";
         const directBaseField = makeField("直接 Base URL");
-        const directKeyField = makeField("直接 API Key", "password");
+        const directKeyField = makeField("直接 API Key");
         const modelField = makeField("模型");
         const proxyHttpField = makeField("Proxy HTTP");
         const proxyHttpsField = makeField("Proxy HTTPS");
-        addPasswordToggle(directKeyField);
 
         directBaseField.input.value = getWidgetValue(node, "base_url");
         directKeyField.input.value = getWidgetValue(node, "api_key");
@@ -325,8 +308,7 @@ if (!window.__aichatModelLoaderRegistered) {
 
         const quickNameField = makeField("名称");
         const quickBaseField = makeField("Base URL");
-        const quickKeyField = makeField("API Key", "password");
-        addPasswordToggle(quickKeyField);
+        const quickKeyField = makeField("API Key");
         quickAddEditor.appendChild(quickNameField.field);
         quickAddEditor.appendChild(quickBaseField.field);
         quickAddEditor.appendChild(quickKeyField.field);
@@ -459,8 +441,7 @@ if (!window.__aichatModelLoaderRegistered) {
 
                 const nameField = makeField("名称");
                 const baseField = makeField("Base URL");
-                const keyField = makeField("API Key", "password");
-                addPasswordToggle(keyField);
+                const keyField = makeField("API Key");
                 nameField.input.value = group.name || "";
                 baseField.input.value = group.base_url || "";
                 keyField.input.value = group.api_key || "";
